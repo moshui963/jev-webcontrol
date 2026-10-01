@@ -1,6 +1,6 @@
 # JEV Web Control
 
-> 给国人一个亲身体验 **JEV 模型**的网页自动化插件：用自然语言描述目标，插件自动穿透 Shadow DOM / iframe，用束搜索（Beam Search）找出最稳的自动化路线，产出 Agent 可直接消费的结构化方案。
+> 适合中文环境的可快速体验 **JEV 模型**的网页自动化插件：用自然语言描述目标，插件自动穿透 Shadow DOM / iframe，用束搜索（Beam Search）找出最稳的自动化路线，产出 Agent 可直接消费的结构化方案。
 
 [![GitHub](https://img.shields.io/badge/GitHub-moshui963%2Fjev--webcontrol-blue?logo=github)](https://github.com/moshui963/jev-webcontrol)
 [![License](https://img.shields.io/badge/license-MIT-green)](#许可证)
