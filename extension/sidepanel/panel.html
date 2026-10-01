@@ -7,6 +7,13 @@
   <title>JEV Web Control</title>
 </head>
 <body>
+  <div class="topbar">
+    <div class="brand">
+      <span class="brand-name">JEV Web Control</span>
+      <span class="brand-author">by moshui963</span>
+    </div>
+    <a class="star-link" href="https://github.com/moshui963/jev-webcontrol" target="_blank" rel="noopener" title="去 GitHub 点个 Star">⭐ Star</a>
+  </div>
   <header class="tabs">
     <button class="tab active" data-tab="agent">Agent</button>
     <button class="tab" data-tab="workbench">工作台</button>
@@ -96,79 +103,93 @@
       <label>租户 <input id="userTenant" type="text" /></label>
     </div>
 
-    <!-- 模型配置：渠道卡片风格 -->
+    <!-- 模型配置：分组表单（主流设置页风格） -->
     <div id="sub-modelCfg" class="subpane">
-      <p class="muted" style="margin:2px 0 10px">每个能力一路模型渠道：jev 负责快速决策，DeepSeek 负责计划解析与路线裁判，Vision 负责视觉兜底。Key 仅保存在浏览器本地（chrome.storage），均留空即本地 mock 模式。</p>
+      <p class="muted" style="margin:2px 0 10px">每个能力一路模型渠道：<b>JEV 决策引擎</b>（阿里云 decision-model-preview，快速决策）、DeepSeek（计划解析与路线裁判）、Vision（视觉兜底）。Key 仅保存在浏览器本地（chrome.storage），全部留空即本地 mock 模式。</p>
 
-      <div class="channel">
-        <div class="ch-head">
-          <div>
-            <div class="ch-name">jev 决策引擎 <span id="jevStatus" class="ch-badge off">未配置</span></div>
-            <div class="ch-sub" id="jevSub"></div>
-          </div>
-          <button class="ch-edit" data-ch="jev">✎ 编辑</button>
+      <fieldset class="cfg-group">
+        <legend><span class="cfg-title">JEV 决策引擎</span><span id="jevStatus" class="ch-badge off">未配置</span></legend>
+        <p id="jevSub" class="cfg-sub"></p>
+        <div class="field">
+          <label for="jevAdapter">模型类型</label>
+          <select id="jevAdapter" title="适配不同 jev 后端 API 格式">
+            <option value="typesafe">SystemOne 兼容格式（noul 探针）</option>
+            <option value="openai">OpenAI 兼容（chat/completions）</option>
+          </select>
         </div>
-        <div class="ch-body" id="ch-jev" hidden>
-          <label>模型类型
-            <select id="jevAdapter" title="适配不同 jev 后端 API 格式">
-              <option value="typesafe">SystemOne 兼容格式（noul 探针）</option>
-              <option value="openai">OpenAI 兼容（chat/completions）</option>
-            </select>
-          </label>
-          <label>端点 URL <input id="typesafeEndpoint" type="text" placeholder="https://{workspace}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/systemone" /></label>
-          <label>API Key <input id="typesafeKey" type="password" placeholder="留空则回退 DeepSeek / mock" /></label>
-          <label>模型名 <input id="typesafeModel" type="text" placeholder="decision-model-preview / jev-latest" /></label>
-          <div class="row" style="align-items:center;gap:8px;margin:4px 0">
-            <button id="jevTestBtn" type="button">测试连接</button>
-            <span id="jevTestResult" class="muted"></span>
+        <div class="field">
+          <label for="typesafeEndpoint">端点 URL</label>
+          <input id="typesafeEndpoint" type="text" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1" />
+          <span class="hint">阿里云百炼 OpenAI 兼容接口。若用私有 MaaS 工作区，替换为对应的 /compatible-mode/v1 地址。</span>
+        </div>
+        <div class="field">
+          <label for="typesafeModel">模型名</label>
+          <input id="typesafeModel" type="text" value="decision-model-preview" placeholder="decision-model-preview" />
+          <span class="hint">默认即阿里云 <b>decision-model-preview</b>（JEV 快速决策模型），可换成 jev-latest 等。</span>
+        </div>
+        <div class="field">
+          <label for="typesafeKey">API Key</label>
+          <div class="pw">
+            <input id="typesafeKey" type="password" placeholder="sk-...（留空则回退 DeepSeek / mock）" />
+            <button class="pw-toggle" type="button" data-target="typesafeKey">显示</button>
           </div>
         </div>
-      </div>
+        <div class="cfg-actions">
+          <button id="jevTestBtn" type="button">测试连接</button>
+          <span id="jevTestResult" class="muted"></span>
+        </div>
+      </fieldset>
 
-      <div class="channel">
-        <div class="ch-head">
-          <div>
-            <div class="ch-name">DeepSeek 路线裁判 <span id="dsStatus" class="ch-badge off">未配置</span></div>
-            <div class="ch-sub" id="dsSub"></div>
+      <fieldset class="cfg-group">
+        <legend><span class="cfg-title">DeepSeek 路线裁判</span><span id="dsStatus" class="ch-badge off">未配置</span></legend>
+        <p id="dsSub" class="cfg-sub"></p>
+        <div class="field">
+          <label for="deepseekKey">API Key</label>
+          <div class="pw">
+            <input id="deepseekKey" type="password" placeholder="sk-..." />
+            <button class="pw-toggle" type="button" data-target="deepseekKey">显示</button>
           </div>
-          <button class="ch-edit" data-ch="ds">✎ 编辑</button>
         </div>
-        <div class="ch-body" id="ch-ds" hidden>
-          <label>API Key <input id="deepseekKey" type="password" placeholder="sk-..." /></label>
-          <label>Base URL <input id="deepseekBase" type="text" placeholder="https://api.deepseek.com/v1" /></label>
-          <label>模型名 <input id="deepseekModel" type="text" placeholder="deepseek-chat" /></label>
+        <div class="field">
+          <label for="deepseekBase">Base URL</label>
+          <input id="deepseekBase" type="text" placeholder="https://api.deepseek.com/v1" />
         </div>
-      </div>
+        <div class="field">
+          <label for="deepseekModel">模型名</label>
+          <input id="deepseekModel" type="text" placeholder="deepseek-chat" />
+        </div>
+      </fieldset>
 
-      <div class="channel">
-        <div class="ch-head">
-          <div>
-            <div class="ch-name">Vision 视觉兜底 <span id="visStatus" class="ch-badge off">未配置</span></div>
-            <div class="ch-sub" id="visSub"></div>
+      <fieldset class="cfg-group">
+        <legend><span class="cfg-title">Vision 视觉兜底</span><span id="visStatus" class="ch-badge off">未配置</span></legend>
+        <p id="visSub" class="cfg-sub"></p>
+        <p class="muted" style="font-size:11px;margin:2px 0 6px">启用开关在「功能配置」里。Key 留空则复用 DeepSeek Key。</p>
+        <div class="field">
+          <label for="visionKey">Vision Key</label>
+          <div class="pw">
+            <input id="visionKey" type="password" placeholder="留空则用 DeepSeek Key" />
+            <button class="pw-toggle" type="button" data-target="visionKey">显示</button>
           </div>
-          <button class="ch-edit" data-ch="vis">✎ 编辑</button>
         </div>
-        <div class="ch-body" id="ch-vis" hidden>
-          <p class="muted" style="font-size:11px;margin:2px 0 6px">启用开关在「功能配置」里。Key 留空则复用 DeepSeek Key。</p>
-          <label>Vision Key <input id="visionKey" type="password" placeholder="留空则用 DeepSeek Key" /></label>
-          <label>Vision Base URL <input id="visionBase" type="text" placeholder="https://api.openai.com/v1" /></label>
-          <label>Vision 模型名 <input id="visionModel" type="text" placeholder="gpt-4o / qwen-vl-max 等视觉模型" /></label>
+        <div class="field">
+          <label for="visionBase">Vision Base URL</label>
+          <input id="visionBase" type="text" placeholder="https://api.openai.com/v1" />
         </div>
-      </div>
+        <div class="field">
+          <label for="visionModel">Vision 模型名</label>
+          <input id="visionModel" type="text" placeholder="gpt-4o / qwen-vl-max 等视觉模型" />
+        </div>
+      </fieldset>
 
-      <div class="channel">
-        <div class="ch-head">
-          <div>
-            <div class="ch-name">browser-use 兜底后端 <span id="buStatus" class="ch-badge off">未配置</span></div>
-            <div class="ch-sub" id="buSub"></div>
-          </div>
-          <button class="ch-edit" data-ch="bu">✎ 编辑</button>
+      <fieldset class="cfg-group">
+        <legend><span class="cfg-title">browser-use 兜底后端</span><span id="buStatus" class="ch-badge off">未配置</span></legend>
+        <p id="buSub" class="cfg-sub"></p>
+        <div class="field">
+          <label for="browserUseUrl">后端 URL</label>
+          <input id="browserUseUrl" type="text" placeholder="留空则用扩展内 LLM agentic 兜底" />
         </div>
-        <div class="ch-body" id="ch-bu" hidden>
-          <label>后端 URL <input id="browserUseUrl" type="text" placeholder="留空则用扩展内 LLM agentic 兜底" /></label>
-          <p class="muted" style="font-size:11px;margin:2px 0 6px">当 jev/LLM 都判定不出可点击元素时（如拖拽/复杂交互），把该步交给 browser-use 式 agent 兜底。填写即走真实 browser-use 后端，否则用扩展内置的「观察→决策→执行」循环。</p>
-        </div>
-      </div>
+        <p class="muted" style="font-size:11px;margin:2px 0 6px">当 jev/LLM 都判定不出可点击元素时（如拖拽/复杂交互），把该步交给 browser-use 式 agent 兜底。填写即走真实 browser-use 后端，否则用扩展内置的「观察→决策→执行」循环。</p>
+      </fieldset>
     </div>
 
     <!-- 功能配置：所有可调参数集中在这里 -->
@@ -195,10 +216,6 @@
     </div>
   </section>
 
-  <footer style="margin-top:14px;padding:10px 14px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-    <span>喜欢 JEV Web Control？欢迎到 GitHub 点个 ⭐</span>
-    <a href="https://github.com/moshui963/jev-webcontrol" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;text-decoration:none;">⭐ 去点 Star</a>
-  </footer>
   <script src="panel.js"></script>
 </body>
 </html>

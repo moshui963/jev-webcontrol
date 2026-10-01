@@ -667,12 +667,14 @@ document.querySelectorAll(".subtab").forEach((t) =>
     $("sub-" + t.dataset.sub).classList.add("active");
   })
 );
-document.querySelectorAll(".ch-edit").forEach((b) =>
-  b.addEventListener("click", () => {
-    const body = $("ch-" + b.dataset.ch);
-    if (!body) return;
-    body.hidden = !body.hidden;
-    b.textContent = body.hidden ? "✎ 编辑" : "收起";
+// ---- password show/hide toggle（模型配置页主流交互） ----
+document.querySelectorAll(".pw-toggle").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    const inp = $(btn.dataset.target);
+    if (!inp) return;
+    const show = inp.type === "password";
+    inp.type = show ? "text" : "password";
+    btn.textContent = show ? "隐藏" : "显示";
   })
 );
 

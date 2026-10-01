@@ -70,7 +70,7 @@ h3 { font-size: 13px; margin: 12px 0 6px; color: var(--text); }
 
 .locator { border: 1px solid var(--border); border-radius: 8px; padding: 8px; background: #0f172a; color: #e2e8f0; font-size: 11px; max-height: 200px; overflow: auto; white-space: pre-wrap; }
 
-/* 运行日志：原始日志流，不做渲染加�? */
+/* 运行日志：原始日志流，不做渲染加�? */
 .runlog { max-height: 300px; font-family: ui-monospace, Consolas, "Courier New", monospace; line-height: 1.5; }
 
 .wb-md { margin-top: 12px; }
@@ -78,7 +78,7 @@ h3 { font-size: 13px; margin: 12px 0 6px; color: var(--text); }
 .md-actions { display: flex; gap: 8px; margin-top: 6px; }
 .md-actions button { padding: 6px 10px; border: 1px solid var(--border); background: #fff; border-radius: 8px; cursor: pointer; }
 
-/* Settings: �ӱ�ǩ + ������Ƭ */
+/* Settings: �ӱ�ǩ + ������Ƭ */
 .subtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
 .subtab { padding: 8px 14px; border: none; background: transparent; cursor: pointer; font-size: 13px; color: var(--muted); }
 .subtab.active { color: var(--blue); font-weight: 600; box-shadow: inset 0 -2px 0 var(--blue); }
@@ -109,3 +109,29 @@ input[type=text] { width: 100%; padding: 6px; border: 1px solid var(--border); b
 .goal-card .gchip.current { background: #fef9c3; border-color: var(--amber); color: #92400e; font-weight: 700; }
 .goal-card .gmuted { font-size: 11px; color: var(--muted); }
 .goal-card .gok { color: var(--green); }
+
+/* ---- top bar（品牌 + Star） ---- */
+.topbar { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:linear-gradient(90deg,#2563eb,#7c3aed); color:#fff; }
+.brand { display:flex; align-items:baseline; gap:8px; min-width:0; }
+.brand-name { font-weight:700; font-size:14px; white-space:nowrap; }
+.brand-author { font-size:11px; opacity:.85; white-space:nowrap; }
+.star-link { color:#fff; font-weight:700; text-decoration:none; background:rgba(255,255,255,.18); padding:5px 12px; border-radius:999px; font-size:12px; white-space:nowrap; transition:background .15s; }
+.star-link:hover { background:rgba(255,255,255,.32); }
+
+/* ---- 模型配置：主流分组表单 ---- */
+.cfg-group { border:1px solid var(--border); border-radius:10px; padding:10px 12px 12px; margin:0 0 12px; background:#fff; }
+.cfg-group legend { padding:0 6px; display:flex; align-items:center; gap:8px; font-weight:700; color:var(--text); }
+.cfg-title { font-size:13px; }
+.cfg-sub { font-size:11px; color:var(--muted); margin:4px 0 8px; }
+.field { margin:8px 0; }
+.field > label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+.field input[type=text], .field select { width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:8px; font-size:13px; background:#fff; color:var(--text); }
+.field input[type=text]:focus, .field select:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 2px rgba(37,99,235,.14); }
+.hint { display:block; font-size:11px; color:var(--muted); margin-top:4px; line-height:1.5; }
+.pw { position:relative; display:flex; align-items:center; }
+.pw input { flex:1; padding-right:52px; }
+.pw-toggle { position:absolute; right:6px; top:50%; transform:translateY(-50%); border:none; background:transparent; color:var(--blue); cursor:pointer; font-size:12px; padding:4px 6px; }
+.pw-toggle:hover { text-decoration:underline; }
+.cfg-actions { display:flex; align-items:center; gap:10px; margin-top:8px; }
+.cfg-actions button { padding:6px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; color:var(--text); }
+.cfg-actions button:hover { border-color:var(--blue); color:var(--blue); }
