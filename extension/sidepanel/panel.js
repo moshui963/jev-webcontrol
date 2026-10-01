@@ -658,7 +658,7 @@ function refreshMd(s) {
     .catch(() => {});
 }
 
-// ---- Settings: 子标签 + 渠道卡片展开/收起 ----
+// ---- Settings: 子标签 ----
 document.querySelectorAll(".subtab").forEach((t) =>
   t.addEventListener("click", () => {
     document.querySelectorAll(".subtab").forEach((x) => x.classList.remove("active"));
@@ -667,100 +667,357 @@ document.querySelectorAll(".subtab").forEach((t) =>
     $("sub-" + t.dataset.sub).classList.add("active");
   })
 );
-// ---- password show/hide toggle（模型配置页主流交互） ----
-document.querySelectorAll(".pw-toggle").forEach((btn) =>
-  btn.addEventListener("click", () => {
-    const inp = $(btn.dataset.target);
-    if (!inp) return;
-    const show = inp.type === "password";
-    inp.type = show ? "text" : "password";
-    btn.textContent = show ? "隐藏" : "显示";
-  })
-);
 
 function hostOf(u) {
   try { return new URL(u).host; } catch { return u || ""; }
 }
-// 渠道卡片的状态徽标与副标题（编辑收起后仍能一眼看到每个渠道配没配好）
-function refreshChannelMeta(c) {
-  const badge = (id, on) => {
-    const el = $(id);
-    if (el) { el.textContent = on ? "已配置" : "未配置"; el.className = "ch-badge " + (on ? "on" : "off"); }
+
+// ============ 模型渠道：渠道列表 + 编辑弹窗 + 选择模型弹窗 ============
+// 逻辑渠道 role: jev=JEV 决策引擎, ds=DeepSeek 路线裁判, vis=Vision 视觉兜底, bu=browser-use 兜底
+const ROLE_META = {
+  jev: { title: "JEV 决策引擎", sub: "网页自动化主判定模型（阿里云 decision-model-preview 等 SystemOne 兼容接口）" },
+  ds:  { title: "DeepSeek 路线裁判", sub: "jev 卡住时升级判路线的 LLM（OpenAI 兼容）" },
+  vis: { title: "Vision 视觉兜底", sub: "探针找不到目标时截图定位（OpenAI 兼容 vision）" },
+  bu:  { title: "browser-use 兜底", sub: "难步骤委托真实 browser-use 后端（仅填地址，无 Key）" },
+};
+
+let channels = [];      // 当前渠道数组（含内置 4 渠道 + 用户自定义）
+let editingIndex = -1;  // 正在编辑的渠道下标
+let pickerTemp = [];    // 模型选择弹窗的临时选择 [{name, caps}]
+let pickerFetched = []; // 拉取到的模型
+let pickerExisting = []; // 编辑中渠道已有的模型
+let pickerTab = "fetched";
+
+// 从 background config 构建渠道数组（内置 4 渠道 + 用户自定义 channels）
+function buildChannels(cfg) {
+  cfg = cfg || {};
+  const seed = {
+    jev: { endpoint: cfg.typesafeEndpoint || "https://api.typesafe.ai/v1/systemone", key: cfg.typesafeKey || "", models: cfg.jevModels || [], proto: cfg.jevAdapter || "typesafe", hasKey: !!cfg.hasTypesafeKey },
+    ds:  { endpoint: cfg.deepseekBase || "https://api.deepseek.com/v1", key: cfg.deepseekKey || "", models: cfg.dsModels || [], proto: "openai", hasKey: !!cfg.hasDeepseekKey },
+    vis: { endpoint: cfg.visionBase || "", key: cfg.visionKey || "", models: cfg.visModels || [], proto: "openai", hasKey: !!cfg.hasVisionKey },
+    bu:  { endpoint: cfg.browserUseUrl || "", key: "", models: [], proto: "", hasKey: false },
   };
-  badge("jevStatus", !!c.hasTypesafeKey);
-  badge("dsStatus", !!c.hasDeepseekKey);
-  badge("visStatus", !!c.vision && !!(c.hasVisionKey || c.hasDeepseekKey));
-  badge("buStatus", !!c.browserUseUrl);
-  const sub = (id, text) => { const el = $(id); if (el) el.textContent = text; };
-  sub("jevSub", `${c.jevAdapter === "openai" ? "OpenAI 兼容" : "SystemOne 兼容"} · ${c.typesafeModel || "模型未填"} · ${hostOf(c.typesafeEndpoint || "")}`);
-  sub("dsSub", `${c.deepseekModel || "deepseek-chat"} · ${hostOf(c.deepseekBase || "")}`);
-  sub("visSub", c.vision ? `${c.visionModel || "模型未填"} · ${hostOf(c.visionBase || "")}` : "未启用（在功能配置里开启）");
-  sub("buSub", c.browserUseUrl ? hostOf(c.browserUseUrl) : "使用扩展内置兜底循环");
+  const arr = [];
+  for (const role of ["jev", "ds", "vis", "bu"]) {
+    const s = seed[role];
+    arr.push({
+      role,
+      name: (cfg.channelNames && cfg.channelNames[role]) || ROLE_META[role].title,
+      proto: s.proto,
+      endpoint: s.endpoint,
+      key: s.key,
+      models: s.models,
+      hasKey: s.hasKey,
+    });
+  }
+  if (Array.isArray(cfg.channels)) for (const c of cfg.channels) arr.push({ ...c, role: c.role || "" });
+  return arr;
 }
 
+function renderChannels() {
+  const box = $("channelList");
+  if (!box) return;
+  box.innerHTML = "";
+  if (!channels.length) { box.innerHTML = `<div class="muted">还没有渠道，点「＋ 新增渠道」添加。</div>`; return; }
+  channels.forEach((c, i) => {
+    const card = document.createElement("div");
+    card.className = "ch-card";
+    const roleMeta = c.role ? ROLE_META[c.role] : null;
+    const sub = c.role && roleMeta ? roleMeta.sub
+      : (c.endpoint ? hostOf(c.endpoint) : "未填接口地址");
+    const modelCount = (c.models || []).length;
+    const ok = c.endpoint && (c.role === "bu" ? true : !!c.hasKey);
+    card.innerHTML =
+      `<div class="ch-card-main">` +
+        `<div class="ch-card-name">${escapeHtml(c.name)}</div>` +
+        `<div class="ch-card-sub">${escapeHtml(sub)}${modelCount ? " · 模型 " + modelCount + " 个" : ""}</div>` +
+      `</div>` +
+      `<div class="ch-card-actions">` +
+        `<span class="ch-badge ${ok ? "on" : "off"}">${ok ? "已配置" : "未配置"}</span>` +
+        `<button class="btn-edit" data-i="${i}">编辑</button>` +
+        (c.role ? "" : `<button class="btn-del" data-del="${i}">删除</button>`) +
+      `</div>`;
+    box.appendChild(card);
+  });
+  box.querySelectorAll(".btn-edit").forEach((b) =>
+    b.addEventListener("click", () => openEditChannel(parseInt(b.dataset.i, 10))));
+  box.querySelectorAll(".btn-del").forEach((b) =>
+    b.addEventListener("click", () => {
+      const i = parseInt(b.dataset.del, 10);
+      if (confirm("确定删除渠道「" + channels[i].name + "」？")) { channels.splice(i, 1); renderChannels(); }
+    }));
+}
+
+function openEditChannel(i) {
+  editingIndex = i;
+  const c = channels[i] || { name: "", proto: "openai", endpoint: "", key: "", models: [] };
+  $("chName").value = c.name || "";
+  $("chProto").value = c.proto || "openai";
+  $("chEndpoint").value = c.endpoint || "";
+  $("chKey").value = c.key || "";
+  $("chKey").type = "password";
+  $("chKeyEye").textContent = "👁";
+  $("chKey").placeholder = c.hasKey ? "已配置（输入可更换）" : "sk-...";
+  $("chTestResult").textContent = "";
+  renderModelRows(c.models || []);
+  $("chModal").hidden = false;
+}
+
+const CAPS = ["text", "image", "video", "audio"];
+function renderModelRows(models) {
+  const box = $("chModelRows");
+  if (!box) return;
+  box.innerHTML = "";
+  if ($("chModelsSub")) $("chModelsSub").textContent = `已选 ${models.length} 个；为每个模型指定能力并可自定义调用脚本。`;
+  if (!models.length) { box.innerHTML = `<div class="mr-empty">尚未选择模型，点「☰ 选择模型」添加。</div>`; return; }
+  models.forEach((m, idx) => {
+    const row = document.createElement("div");
+    row.className = "model-row";
+    const caps = m.caps || [];
+    const capHtml = CAPS.map((cap) =>
+      `<span class="cap ${caps.includes(cap) ? "on" : ""}" data-cap="${cap}" data-mi="${idx}">${cap}</span>`
+    ).join("");
+    row.innerHTML =
+      `<span class="mr-name">${escapeHtml(m.name)}</span>` +
+      `<span class="mr-caps">${capHtml}</span>` +
+      `<button class="mr-del" data-mi="${idx}">✕</button>`;
+    box.appendChild(row);
+  });
+  box.querySelectorAll(".cap").forEach((el) =>
+    el.addEventListener("click", () => {
+      const idx = parseInt(el.dataset.mi, 10), cap = el.dataset.cap;
+      const set = new Set(models[idx].caps || []);
+      if (set.has(cap)) set.delete(cap); else set.add(cap);
+      models[idx].caps = [...set];
+      renderModelRows(models);
+    }));
+  box.querySelectorAll(".mr-del").forEach((el) =>
+    el.addEventListener("click", () => { models.splice(parseInt(el.dataset.mi, 10), 1); renderModelRows(models); }));
+}
+
+function openModelPicker() {
+  const c = channels[editingIndex] || { models: [] };
+  pickerExisting = (c.models || []).map((m) => ({ ...m }));
+  pickerFetched = [];
+  pickerTemp = pickerExisting.map((m) => ({ ...m }));
+  pickerTab = "fetched";
+  $("mmSearch").value = "";
+  $("mmManual").value = "";
+  $("mmPullMsg").textContent = "";
+  setMmTabs();
+  renderMmList();
+  $("modelModal").hidden = false;
+}
+
+function setMmTabs() {
+  document.querySelectorAll(".mm-tab").forEach((t) => t.classList.toggle("active", t.dataset.mmtab === pickerTab));
+  const ft = document.querySelector('.mm-tab[data-mmtab="fetched"]');
+  if (ft) ft.textContent = `新获取的模型 (${pickerFetched.length})`;
+  const et = document.querySelector('.mm-tab[data-mmtab="existing"]');
+  if (et) et.textContent = `已有的模型 (${pickerExisting.length})`;
+}
+
+function mmListItems() {
+  const q = ($("mmSearch").value || "").trim().toLowerCase();
+  const list = pickerTab === "fetched" ? pickerFetched : pickerExisting;
+  return list.filter((m) => !q || (m.name || "").toLowerCase().includes(q));
+}
+function mmIsSel(name) { return pickerTemp.some((m) => m.name === name); }
+
+function renderMmList() {
+  const box = $("mmList");
+  if (!box) return;
+  box.innerHTML = "";
+  const items = mmListItems();
+  const total = items.length;
+  const sel = items.filter((m) => mmIsSel(m.name)).length;
+  $("mmSelCount").textContent = sel;
+  $("mmTotal").textContent = total;
+  $("mmCount").textContent = `已选择 ${pickerTemp.length} / ${pickerFetched.length + pickerExisting.length}`;
+  if (!items.length) {
+    box.innerHTML = `<div class="muted" style="grid-column:1/3">（此列表为空，可手动增加或点「⟳ 拉取模型列表」）</div>`;
+    return;
+  }
+  items.forEach((m) => {
+    const item = document.createElement("div");
+    item.className = "mm-item";
+    const checked = mmIsSel(m.name);
+    item.innerHTML = `<input type="checkbox" ${checked ? "checked" : ""}/> <span>${escapeHtml(m.name)}</span>`;
+    item.querySelector("input").addEventListener("change", (e) => {
+      if (e.target.checked) { if (!mmIsSel(m.name)) pickerTemp.push({ name: m.name, caps: (pickerTemp.find((x) => x.name === m.name)?.caps) || [] }); }
+      else pickerTemp = pickerTemp.filter((x) => x.name !== m.name);
+      renderMmList();
+    });
+    box.appendChild(item);
+  });
+}
+
+function primaryModel(models) {
+  if (!models || !models.length) return "";
+  const t = models.find((m) => (m.caps || []).includes("text"));
+  return (t || models[0]).name;
+}
+
+// ============ 渠道保存 / 与引擎字段同步 ============
+async function persistChannels() {
+  const cfg = { channels: [] };
+  const models = { jev: [], ds: [], vis: [] };
+  const names = {};
+  const legacy = {};
+  for (const c of channels) {
+    if (c.role === "jev") {
+      legacy.typesafeKey = c.key || undefined;
+      legacy.typesafeEndpoint = c.endpoint || undefined;
+      legacy.jevAdapter = c.proto === "openai" ? "openai" : "typesafe";
+      legacy.typesafeModel = primaryModel(c.models) || "decision-model-preview";
+      names.jev = c.name; models.jev = c.models;
+    } else if (c.role === "ds") {
+      legacy.deepseekKey = c.key || undefined;
+      legacy.deepseekBase = c.endpoint || undefined;
+      legacy.deepseekModel = primaryModel(c.models) || "deepseek-chat";
+      names.ds = c.name; models.ds = c.models;
+    } else if (c.role === "vis") {
+      legacy.visionKey = c.key || undefined;
+      legacy.visionBase = c.endpoint || undefined;
+      legacy.visionModel = primaryModel(c.models) || "";
+      legacy.vision = !!(c.models && c.models.length);
+      names.vis = c.name; models.vis = c.models;
+    } else if (c.role === "bu") {
+      legacy.browserUseUrl = c.endpoint || undefined;
+      names.bu = c.name;
+    } else {
+      cfg.channels.push({ name: c.name, proto: c.proto, endpoint: c.endpoint, key: c.key, models: c.models });
+    }
+  }
+  cfg.channelNames = names;
+  cfg.jevModels = models.jev;
+  cfg.dsModels = models.ds;
+  cfg.visModels = models.vis;
+  Object.assign(cfg, legacy);
+  try {
+    const res = await sendMsg({ type: "SET_CONFIG", config: cfg });
+    if (res?.ok) {
+      try { chrome.storage.local.get("config", (d) => { chrome.storage.local.set({ config: Object.assign({}, d.config || {}, cfg) }); }); } catch (_) {}
+      alert("已保存渠道配置。");
+    } else alert("保存失败");
+  } catch (e) { alert("保存失败：" + e.message); }
+}
+
+function saveChannel() {
+  const i = editingIndex;
+  if (i < 0) return;
+  const c = channels[i];
+  c.name = $("chName").value.trim() || (c.role ? ROLE_META[c.role].title : "新渠道");
+  c.proto = $("chProto").value;
+  c.endpoint = $("chEndpoint").value.trim();
+  c.key = $("chKey").value.trim();
+  // c.models 已在弹窗内被模型行/选择弹窗就地修改
+  $("chModal").hidden = true;
+  renderChannels();
+  persistChannels();
+}
+
+// ============ 事件绑定 ============
+$("addChannelBtn").addEventListener("click", () => {
+  channels.push({ role: "", name: "", proto: "openai", endpoint: "", key: "", models: [] });
+  openEditChannel(channels.length - 1);
+});
+$("chPickModels").addEventListener("click", openModelPicker);
+$("chSave").addEventListener("click", saveChannel);
+$("chCancel").addEventListener("click", () => { $("chModal").hidden = true; });
+$("chKeyEye").addEventListener("click", () => {
+  const inp = $("chKey");
+  const show = inp.type === "password";
+  inp.type = show ? "text" : "password";
+  $("chKeyEye").textContent = show ? "🙈" : "👁";
+});
+$("chTestBtn").addEventListener("click", async () => {
+  const el = $("chTestResult");
+  el.textContent = "测试中…"; el.style.color = "";
+  const c = channels[editingIndex] || {};
+  const base = ($("chEndpoint").value || c.endpoint || "").trim();
+  const key = ($("chKey").value || c.key || "").trim();
+  if (!base) { el.style.color = "#dc2626"; el.textContent = "✗ 请先填写接口地址"; return; }
+  try {
+    const res = await sendMsg({ type: "LIST_MODELS", channel: c.role || "", base, key });
+    if (res?.ok) { el.style.color = "#16a34a"; el.textContent = `✓ 连接成功 · 获取到 ${res.models.length} 个模型`; }
+    else { el.style.color = "#dc2626"; el.textContent = "✗ " + (res?.reason || "连接失败"); }
+  } catch (e) { el.style.color = "#dc2626"; el.textContent = "✗ " + e.message; }
+});
+$("mmSearch").addEventListener("input", renderMmList);
+$("mmAdd").addEventListener("click", () => {
+  const name = ($("mmManual").value || "").trim();
+  if (!name) return;
+  if (!pickerExisting.some((m) => m.name === name)) pickerExisting.push({ name, caps: [] });
+  if (!pickerTemp.some((m) => m.name === name)) pickerTemp.push({ name, caps: [] });
+  $("mmManual").value = "";
+  if (pickerTab !== "existing") { pickerTab = "existing"; setMmTabs(); }
+  renderMmList();
+});
+$("mmPull").addEventListener("click", async () => {
+  const c = channels[editingIndex] || {};
+  const base = ($("chEndpoint").value || c.endpoint || "").trim();
+  const key = ($("chKey").value || c.key || "").trim();
+  $("mmPullMsg").textContent = "拉取中…";
+  try {
+    const res = await sendMsg({ type: "LIST_MODELS", channel: c.role || "", base, key });
+    if (res?.ok) {
+      pickerFetched = (res.models || []).map((n) => ({ name: n, caps: [] }));
+      $("mmPullMsg").textContent = `✓ 获取到 ${pickerFetched.length} 个模型（${res.url || base}）`;
+      pickerTab = "fetched"; setMmTabs(); renderMmList();
+    } else {
+      $("mmPullMsg").textContent = "✗ " + (res?.reason || "拉取失败");
+    }
+  } catch (e) { $("mmPullMsg").textContent = "✗ " + e.message; }
+});
+document.querySelectorAll(".mm-tab").forEach((t) =>
+  t.addEventListener("click", () => { pickerTab = t.dataset.mmtab; setMmTabs(); renderMmList(); }));
+$("mmAll").addEventListener("click", () => {
+  const list = pickerTab === "fetched" ? pickerFetched : pickerExisting;
+  for (const m of list) if (!mmIsSel(m.name)) pickerTemp.push({ name: m.name, caps: (pickerTemp.find((x) => x.name === m.name)?.caps) || [] });
+  renderMmList();
+});
+$("mmNone").addEventListener("click", () => {
+  const list = pickerTab === "fetched" ? pickerFetched : pickerExisting;
+  const inTab = new Set(list.map((m) => m.name));
+  pickerTemp = pickerTemp.filter((x) => !inTab.has(x.name));
+  renderMmList();
+});
+$("mmOk").addEventListener("click", () => {
+  if (editingIndex >= 0) channels[editingIndex].models = pickerTemp.map((m) => ({ name: m.name, caps: m.caps || [] }));
+  renderModelRows(channels[editingIndex].models);
+  $("modelModal").hidden = true;
+});
+$("mmCancel").addEventListener("click", () => { $("modelModal").hidden = true; });
+$("mmClose").addEventListener("click", () => { $("modelModal").hidden = true; });
+
+// ============ 功能配置保存（独立于渠道） ============
 $("saveSettingsBtn").addEventListener("click", async () => {
   const cfg = {
-    typesafeKey: $("typesafeKey").value.trim() || undefined, // undefined = keep existing unless user typed
-    typesafeModel: $("typesafeModel").value.trim(),
-    typesafeEndpoint: $("typesafeEndpoint").value.trim(),
-    jevAdapter: $("jevAdapter").value,
-    deepseekBase: $("deepseekBase").value.trim(),
-    deepseekModel: $("deepseekModel").value.trim(),
     vision: $("visionOn").checked,
-    visionKey: $("visionKey").value.trim() || undefined,
-    visionBase: $("visionBase").value.trim() || undefined,
-    visionModel: $("visionModel").value.trim() || undefined,
-    browserUseUrl: $("browserUseUrl").value.trim() || undefined,
     routeOn: $("routeOn").checked,
     probeOn: $("probeOn").checked,
-    routeTopBar: parseFloat($("routeTopBar").value) || undefined,
-    probeLockBar: parseFloat($("probeLockBar").value) || undefined,
+    routeTopBar: parseFloat($("routeTopBar").value) || 0.6,
+    probeLockBar: parseFloat($("probeLockBar").value) || 0.6,
     sweepStrategy: $("sweepStrategy").value || "onDemand",
-    sweepMaxSteps: parseInt($("sweepMaxSteps").value, 10) || undefined,
-    sweepStepRatio: parseFloat($("sweepStepRatio").value) || undefined,
+    sweepMaxSteps: parseInt($("sweepMaxSteps").value, 10) || 6,
+    sweepStepRatio: parseFloat($("sweepStepRatio").value) || 0.8,
   };
-  if ($("deepseekKey").value.trim()) cfg.deepseekKey = $("deepseekKey").value.trim();
-  if ($("typesafeKey").value.trim()) cfg.typesafeKey = $("typesafeKey").value.trim();
-  const res = await sendMsg({ type: "SET_CONFIG", config: cfg });
   await sendMsg({ type: "USER_INFO", user: { name: $("userName").value, tenant: $("userTenant").value } });
+  const res = await sendMsg({ type: "SET_CONFIG", config: cfg });
   if (res?.ok) {
-    const c = res.state.config;
-    refreshChannelMeta(c);
-    alert(`已保存。jev key: ${c.hasTypesafeKey ? "已配置" : "未配置"} · DeepSeek key: ${c.hasDeepseekKey ? "已配置" : "未配置"}`);
+    try { chrome.storage.local.get("config", (d) => { chrome.storage.local.set({ config: Object.assign({}, d.config || {}, cfg) }); }); } catch (_) {}
+    alert("功能配置已保存。");
   } else alert("保存失败");
-});
-
-// ---- jev connection test ----
-$("jevTestBtn").addEventListener("click", async () => {
-  const el = $("jevTestResult");
-  el.textContent = "测试中…";
-  el.style.color = "";
-  try {
-    const res = await sendMsg({ type: "JEV_TEST" });
-    if (res?.ok) {
-      const s = (res.sample || []).map((x) => `${x.label}(${(x.score * 100).toFixed(0)}%)`).join(", ") || "无候选";
-      el.style.color = "#16a34a";
-      el.textContent = `✓ 可用 · 适配=${res.adapter} · ${res.latencyMs}ms · 候选: ${s}`;
-    } else {
-      el.style.color = "#dc2626";
-      el.textContent = "✗ " + (res?.reason || "测试失败");
-    }
-  } catch (e) {
-    el.style.color = "#dc2626";
-    el.textContent = "✗ " + e.message;
-  }
 });
 
 // ---- 冷启动即时渲染：不依赖 service worker 唤醒，先本地填充，再重试 GET_STATE ----
 function applyConfig(c) {
-  if (c.typesafeModel) $("typesafeModel").value = c.typesafeModel;
-  if (c.typesafeEndpoint) $("typesafeEndpoint").value = c.typesafeEndpoint;
-  if (c.jevAdapter) $("jevAdapter").value = c.jevAdapter;
-  if (c.deepseekBase) $("deepseekBase").value = c.deepseekBase;
-  if (c.deepseekModel) $("deepseekModel").value = c.deepseekModel;
-  if (c.browserUseUrl) $("browserUseUrl").value = c.browserUseUrl;
-  if (c.visionBase) $("visionBase").value = c.visionBase;
-  if (c.visionModel) $("visionModel").value = c.visionModel;
+  if (!c) return;
+  // 渲染模型渠道列表（替代旧版逐项填充的表单）
+  channels = buildChannels(c);
+  renderChannels();
+  // 功能配置
   $("visionOn").checked = !!c.vision;
   $("routeOn").checked = c.routeOn !== false;
   $("probeOn").checked = c.probeOn !== false;
@@ -769,9 +1026,6 @@ function applyConfig(c) {
   $("sweepStrategy").value = c.sweepStrategy || "onDemand";
   $("sweepMaxSteps").value = c.sweepMaxSteps ?? 6;
   $("sweepStepRatio").value = c.sweepStepRatio ?? 0.8;
-  if (c.hasVisionKey) $("visionKey").placeholder = "已配置（输入可更换）";
-  if (c.hasTypesafeKey) $("typesafeKey").placeholder = "已配置（输入可更换）";
-  if (c.hasDeepseekKey) $("deepseekKey").placeholder = "已配置（输入可更换）";
 }
 
 function showInstantPlaceholders() {
@@ -784,7 +1038,7 @@ function showInstantPlaceholders() {
     w.textContent = "欢迎使用 JEV Web Control 👋\n在下方描述你的网页自动化目标，或先到「设置」配置 JEV 模型。";
     chat.appendChild(w);
   }
-  // 本地存储先填设置页
+  // 本地存储先填设置页（渠道列表 + 功能配置）
   try {
     chrome.storage.local.get("config", (d) => {
       if (d && d.config) applyConfig(d.config);
@@ -799,7 +1053,6 @@ function initGetState(attempt) {
       if (!res?.ok) { if (attempt < 5) return initGetState(attempt + 1); return; }
       renderState(res.state);
       applyConfig(res.state.config || {});
-      refreshChannelMeta(res.state.config || {});
       if (res.state.run?.running) startPolling();
     })
     .catch(() => { if (attempt < 5) setTimeout(() => initGetState(attempt + 1), 400); });
