@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="panel.css" />
+  <title>JEV Web Control</title>
+</head>
+<body>
+  <header class="tabs">
+    <button class="tab active" data-tab="agent">Agent</button>
+    <button class="tab" data-tab="workbench">工作台</button>
+    <button class="tab" data-tab="settings">设置</button>
+  </header>
+
+  <!-- AGENT -->
+  <section id="agent" class="pane active">
+    <div id="chat" class="chat"></div>
+    <div class="composer">
+      <button id="uploadBtn" title="上传技能包">＋</button>
+      <input type="file" id="uploadInput" accept=".md,.zip,.json,.yaml,.yml" hidden />
+      <textarea id="chatInput" rows="1" placeholder="一句话描述最终目标，如：在氚云页面找到合同订单导出所有合同"></textarea>
+      <button id="sendBtn">发送</button>
+      <select id="modelSelect" title="模型选择">
+        <option value="auto">auto</option>
+      </select>
+    </div>
+    <div id="goalHint" class="muted" style="display:none;margin:4px 2px 0;font-size:11px">Enter 发送 · Shift+Enter 换行</div>
+  </section>
+
+  <!-- WORKBENCH -->
+  <section id="workbench" class="pane">
+    <div id="goalCard" class="goal-card" hidden></div>
+    <div class="wb-toolbar">
+      <button id="observeBtn">观察当前标签</button>
+      <span class="muted">束宽度 K</span>
+      <input id="exploreK" type="number" min="2" max="5" value="3" title="每步保留的活标签路径数 K" />
+      <button id="beamBtn">▶ 启动探索</button>
+      <button id="beamStopBtn">停止</button>
+      <label class="muted" style="display:flex;align-items:center;gap:4px;cursor:pointer" title="每步执行前暂停，显示 AI 将要做什么，确认后再执行（调试用）">
+        <input id="confirmMode" type="checkbox" /> 逐步确认
+      </label>
+      <span id="workingInfo" class="muted"></span>
+    </div>
+
+    <div class="wb-cols">
+      <div class="col">
+        <h3>计划清单</h3>
+        <ol id="planList" class="plan"></ol>
+        <div id="planSource" class="muted" style="margin:2px 0 8px"></div>
+        <h3>当前步候选路线</h3>
+        <div id="routes" class="routes"></div>
+        <h3>执行轨迹（顺序直达 · 失败记忆 · 局部探索）</h3>
+        <div id="beamStatus" class="muted" style="margin-bottom:4px"></div>
+        <div id="beamList" class="explore"></div>
+      </div>
+      <div class="col">
+        <h3>元素树（页面 / 分步骤）</h3>
+        <div id="elementTree" class="tree"></div>
+        <h3>定位器详情</h3>
+        <pre id="locatorView" class="locator"></pre>
+        <h3>运行日志</h3>
+        <div class="md-actions" style="margin:0 0 4px">
+          <button id="copyLogBtn">复制</button>
+          <button id="downloadLogBtn">下载 .log</button>
+          <button id="clearLogBtn">清空</button>
+        </div>
+        <pre id="runLogView" class="locator runlog"></pre>
+      </div>
+    </div>
+
+    <div class="wb-md">
+      <h3>MD 产物（Agent 可直接消费）</h3>
+      <textarea id="mdView" readonly></textarea>
+      <div class="md-actions">
+        <button id="buildMdBtn">生成 MD</button>
+        <button id="copyMdBtn">复制</button>
+        <button id="downloadMdBtn">下载 .md</button>
+        <button id="testBtn">一键测试</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="pane">
+    <div class="subtabs">
+      <button class="subtab active" data-sub="userInfo">用户信息</button>
+      <button class="subtab" data-sub="modelCfg">模型配置</button>
+      <button class="subtab" data-sub="funcCfg">功能配置</button>
+    </div>
+
+    <!-- 用户信息 -->
+    <div id="sub-userInfo" class="subpane active">
+      <h3>用户信息</h3>
+      <label>昵称 <input id="userName" type="text" /></label>
+      <label>租户 <input id="userTenant" type="text" /></label>
+    </div>
+
+    <!-- 模型配置：渠道卡片风格 -->
+    <div id="sub-modelCfg" class="subpane">
+      <p class="muted" style="margin:2px 0 10px">每个能力一路模型渠道：jev 负责快速决策，DeepSeek 负责计划解析与路线裁判，Vision 负责视觉兜底。Key 仅保存在浏览器本地（chrome.storage），均留空即本地 mock 模式。</p>
+
+      <div class="channel">
+        <div class="ch-head">
+          <div>
+            <div class="ch-name">jev 决策引擎 <span id="jevStatus" class="ch-badge off">未配置</span></div>
+            <div class="ch-sub" id="jevSub"></div>
+          </div>
+          <button class="ch-edit" data-ch="jev">✎ 编辑</button>
+        </div>
+        <div class="ch-body" id="ch-jev" hidden>
+          <label>模型类型
+            <select id="jevAdapter" title="适配不同 jev 后端 API 格式">
+              <option value="typesafe">SystemOne 兼容格式（noul 探针）</option>
+              <option value="openai">OpenAI 兼容（chat/completions）</option>
+            </select>
+          </label>
+          <label>端点 URL <input id="typesafeEndpoint" type="text" placeholder="https://{workspace}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/systemone" /></label>
+          <label>API Key <input id="typesafeKey" type="password" placeholder="留空则回退 DeepSeek / mock" /></label>
+          <label>模型名 <input id="typesafeModel" type="text" placeholder="decision-model-preview / jev-latest" /></label>
+          <div class="row" style="align-items:center;gap:8px;margin:4px 0">
+            <button id="jevTestBtn" type="button">测试连接</button>
+            <span id="jevTestResult" class="muted"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="channel">
+        <div class="ch-head">
+          <div>
+            <div class="ch-name">DeepSeek 路线裁判 <span id="dsStatus" class="ch-badge off">未配置</span></div>
+            <div class="ch-sub" id="dsSub"></div>
+          </div>
+          <button class="ch-edit" data-ch="ds">✎ 编辑</button>
+        </div>
+        <div class="ch-body" id="ch-ds" hidden>
+          <label>API Key <input id="deepseekKey" type="password" placeholder="sk-..." /></label>
+          <label>Base URL <input id="deepseekBase" type="text" placeholder="https://api.deepseek.com/v1" /></label>
+          <label>模型名 <input id="deepseekModel" type="text" placeholder="deepseek-chat" /></label>
+        </div>
+      </div>
+
+      <div class="channel">
+        <div class="ch-head">
+          <div>
+            <div class="ch-name">Vision 视觉兜底 <span id="visStatus" class="ch-badge off">未配置</span></div>
+            <div class="ch-sub" id="visSub"></div>
+          </div>
+          <button class="ch-edit" data-ch="vis">✎ 编辑</button>
+        </div>
+        <div class="ch-body" id="ch-vis" hidden>
+          <p class="muted" style="font-size:11px;margin:2px 0 6px">启用开关在「功能配置」里。Key 留空则复用 DeepSeek Key。</p>
+          <label>Vision Key <input id="visionKey" type="password" placeholder="留空则用 DeepSeek Key" /></label>
+          <label>Vision Base URL <input id="visionBase" type="text" placeholder="https://api.openai.com/v1" /></label>
+          <label>Vision 模型名 <input id="visionModel" type="text" placeholder="gpt-4o / qwen-vl-max 等视觉模型" /></label>
+        </div>
+      </div>
+
+      <div class="channel">
+        <div class="ch-head">
+          <div>
+            <div class="ch-name">browser-use 兜底后端 <span id="buStatus" class="ch-badge off">未配置</span></div>
+            <div class="ch-sub" id="buSub"></div>
+          </div>
+          <button class="ch-edit" data-ch="bu">✎ 编辑</button>
+        </div>
+        <div class="ch-body" id="ch-bu" hidden>
+          <label>后端 URL <input id="browserUseUrl" type="text" placeholder="留空则用扩展内 LLM agentic 兜底" /></label>
+          <p class="muted" style="font-size:11px;margin:2px 0 6px">当 jev/LLM 都判定不出可点击元素时（如拖拽/复杂交互），把该步交给 browser-use 式 agent 兜底。填写即走真实 browser-use 后端，否则用扩展内置的「观察→决策→执行」循环。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 功能配置：所有可调参数集中在这里 -->
+    <div id="sub-funcCfg" class="subpane">
+      <h3>功能配置</h3>
+      <label class="row"><input id="routeOn" type="checkbox" /> LLM 路线裁判（方向型子目标 / jev 卡住时由 LLM 判路线）</label>
+      <label>jev 置信阈值 <input id="routeTopBar" type="number" min="0.3" max="0.9" step="0.05" style="width:80px" /> 低于该值才升级 LLM 判路线（越高 LLM 介入越多、越慢）</label>
+      <label>探针接管临界 <input id="probeLockBar" type="number" min="0.3" max="0.95" step="0.05" style="width:80px" /> jev 置信高于该值则探针不接管（越大越信任 jev、探针越不抢权）</label>
+      <label class="row"><input id="probeOn" type="checkbox" /> DOM 探针（执行前在实时 DOM 检索目标名词，命中可直接点击）</label>
+      <label>滚动扫描策略
+        <select id="sweepStrategy" title="懒加载页面（如淘宝/天猫详情）的滚动识别策略">
+          <option value="onDemand">智能：仅探针未命中时扫描（推荐 · 热路径零开销）</option>
+          <option value="everyStep">每步滚动扫描（主动预热懒加载，元素树更全）</option>
+          <option value="random">随机滑动（每步随机滚一段触发加载）</option>
+          <option value="lastStep">仅最后一步滑动</option>
+          <option value="never">都不滑动（关闭滚动扫描）</option>
+        </select>
+      </label>
+      <label>最大滚动屏数 <input id="sweepMaxSteps" type="number" min="1" max="20" step="1" style="width:70px" /> 「滑动几下」：每步最多滚动的屏数，越多探测越深越慢</label>
+      <label>每次滚动比例 <input id="sweepStepRatio" type="number" min="0.2" max="1" step="0.1" style="width:70px" /> 每屏滚动视口的占比（0.8=每屏滚 80% 视口高度）</label>
+      <label class="row"><input id="visionOn" type="checkbox" /> Vision 视觉兜底（探针找不到目标时截图定位）</label>
+      <button id="saveSettingsBtn">保存</button>
+      <p class="muted">保存后立即生效（无需重载扩展）。</p>
+    </div>
+  </section>
+
+  <footer style="margin-top:14px;padding:10px 14px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span>喜欢 JEV Web Control？欢迎到 GitHub 点个 ⭐</span>
+    <a href="https://github.com/moshui963/jev-webcontrol" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;text-decoration:none;">⭐ 去点 Star</a>
+  </footer>
+  <script src="panel.js"></script>
+</body>
+</html>

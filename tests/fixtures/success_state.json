@@ -1,0 +1,346 @@
+{
+  "url": "https://app.example.com/dashboard",
+  "title": "Dashboard",
+  "w": 1280,
+  "h": 800,
+  "text": "欢迎,张三\n退出",
+  "scroll": {
+    "y": 0,
+    "height": 0
+  },
+  "actions": [
+    {
+      "node": 1,
+      "role": "textbox",
+      "label": "username",
+      "scope": "",
+      "rect": {
+        "x": 10,
+        "y": 10,
+        "w": 120,
+        "h": 30
+      },
+      "locator": {
+        "role": "textbox",
+        "name": "username",
+        "scope": "",
+        "strategies": [
+          {
+            "type": "semantic",
+            "role": "textbox",
+            "name": "username",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[id=\"uname\"]",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[aria-label=\"username\"]",
+            "confidence": "medium"
+          },
+          {
+            "type": "css-path",
+            "selector": "body > input",
+            "confidence": "low"
+          }
+        ]
+      },
+      "attrs": {
+        "id": "uname",
+        "aria-label": "username",
+        "value": "张三"
+      },
+      "kind": "fill",
+      "value": "张三",
+      "id": "e1"
+    },
+    {
+      "node": 1,
+      "role": "textbox",
+      "label": "Open username",
+      "scope": "",
+      "rect": {
+        "x": 10,
+        "y": 10,
+        "w": 120,
+        "h": 30
+      },
+      "locator": {
+        "role": "textbox",
+        "name": "username",
+        "scope": "",
+        "strategies": [
+          {
+            "type": "semantic",
+            "role": "textbox",
+            "name": "username",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[id=\"uname\"]",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[aria-label=\"username\"]",
+            "confidence": "medium"
+          },
+          {
+            "type": "css-path",
+            "selector": "body > input",
+            "confidence": "low"
+          }
+        ]
+      },
+      "attrs": {
+        "id": "uname",
+        "aria-label": "username",
+        "value": "张三"
+      },
+      "kind": "click",
+      "value": "张三",
+      "id": "e2"
+    },
+    {
+      "node": 2,
+      "role": "button",
+      "label": "退出",
+      "scope": "",
+      "rect": {
+        "x": 10,
+        "y": 10,
+        "w": 120,
+        "h": 30
+      },
+      "locator": {
+        "role": "button",
+        "name": "退出",
+        "scope": "",
+        "strategies": [
+          {
+            "type": "semantic",
+            "role": "button",
+            "name": "退出",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[aria-label=\"退出\"]",
+            "confidence": "medium"
+          },
+          {
+            "type": "css-path",
+            "selector": "body > button",
+            "confidence": "low"
+          }
+        ]
+      },
+      "attrs": {
+        "aria-label": "退出"
+      },
+      "kind": "click",
+      "value": "",
+      "id": "e3"
+    },
+    {
+      "id": "wait",
+      "kind": "wait",
+      "label": "Wait for the page to update"
+    }
+  ],
+  "marker": [
+    1790763909014.7246,
+    "https://app.example.com/dashboard",
+    0,
+    0,
+    1280,
+    800,
+    "Dashboard",
+    "欢迎,张三\n退出",
+    [
+      {
+        "node": 1,
+        "role": "textbox",
+        "label": "username",
+        "scope": "",
+        "locator": {
+          "role": "textbox",
+          "name": "username",
+          "scope": "",
+          "strategies": [
+            {
+              "type": "semantic",
+              "role": "textbox",
+              "name": "username",
+              "confidence": "high"
+            },
+            {
+              "type": "css",
+              "selector": "[id=\"uname\"]",
+              "confidence": "high"
+            },
+            {
+              "type": "css",
+              "selector": "[aria-label=\"username\"]",
+              "confidence": "medium"
+            },
+            {
+              "type": "css-path",
+              "selector": "body > input",
+              "confidence": "low"
+            }
+          ]
+        },
+        "attrs": {
+          "id": "uname",
+          "aria-label": "username",
+          "value": "张三"
+        },
+        "kind": "fill",
+        "value": "张三"
+      },
+      {
+        "node": 1,
+        "role": "textbox",
+        "label": "Open username",
+        "scope": "",
+        "locator": {
+          "role": "textbox",
+          "name": "username",
+          "scope": "",
+          "strategies": [
+            {
+              "type": "semantic",
+              "role": "textbox",
+              "name": "username",
+              "confidence": "high"
+            },
+            {
+              "type": "css",
+              "selector": "[id=\"uname\"]",
+              "confidence": "high"
+            },
+            {
+              "type": "css",
+              "selector": "[aria-label=\"username\"]",
+              "confidence": "medium"
+            },
+            {
+              "type": "css-path",
+              "selector": "body > input",
+              "confidence": "low"
+            }
+          ]
+        },
+        "attrs": {
+          "id": "uname",
+          "aria-label": "username",
+          "value": "张三"
+        },
+        "kind": "click",
+        "value": "张三"
+      },
+      {
+        "node": 2,
+        "role": "button",
+        "label": "退出",
+        "scope": "",
+        "locator": {
+          "role": "button",
+          "name": "退出",
+          "scope": "",
+          "strategies": [
+            {
+              "type": "semantic",
+              "role": "button",
+              "name": "退出",
+              "confidence": "high"
+            },
+            {
+              "type": "css",
+              "selector": "[aria-label=\"退出\"]",
+              "confidence": "medium"
+            },
+            {
+              "type": "css-path",
+              "selector": "body > button",
+              "confidence": "low"
+            }
+          ]
+        },
+        "attrs": {
+          "aria-label": "退出"
+        },
+        "kind": "click",
+        "value": ""
+      }
+    ],
+    [
+      [
+        1,
+        "张三",
+        false,
+        null,
+        false,
+        false
+      ]
+    ]
+  ],
+  "page_key": [
+    1790763909014.7246,
+    "https://app.example.com/dashboard",
+    0,
+    0,
+    1280,
+    800,
+    [
+      [
+        1,
+        "张三",
+        false,
+        null,
+        false,
+        false
+      ]
+    ]
+  ],
+  "guards": {
+    "1": [
+      1,
+      "textbox",
+      "username",
+      "张三",
+      false,
+      null,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      ""
+    ],
+    "2": [
+      2,
+      "button",
+      "退出",
+      "",
+      null,
+      null,
+      null,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      ""
+    ]
+  },
+  "omitted_actions": 0
+}

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JEV Web Control</title>
+<style>
+  :root {
+    --bg: #f6f8fb;
+    --panel: #ffffff;
+    --ink: #1f2937;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --blue: #2563eb;
+    --blue-soft: rgba(37, 99, 235, 0.10);
+    --purple: #7c3aed;
+    --purple-soft: rgba(124, 58, 237, 0.10);
+    --orange: #ea580c;
+    --orange-soft: rgba(234, 88, 12, 0.10);
+    --green: #16a34a;
+    --red: #dc2626;
+    --amber: #d97706;
+    --shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.5;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 20;
+  }
+  header h1 { font-size: 16px; margin: 0; white-space: nowrap; }
+  header h1 small { color: var(--muted); font-weight: 400; font-size: 12px; }
+  #url { flex: 1; min-width: 260px; padding: 8px 10px; border: 1px solid var(--line);
+    border-radius: 8px; font-size: 13px; background: #fff; }
+  button {
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+    transition: .15s;
+  }
+  button:hover { border-color: var(--blue); color: var(--blue); }
+  button.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+  button.primary:hover { filter: brightness(1.05); color: #fff; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .status { font-size: 12px; color: var(--muted); min-width: 120px; }
+  .status.err { color: var(--red); }
+  .status.ok { color: var(--green); }
+
+  main { display: grid; grid-template-columns: minmax(380px, 1fr) minmax(360px, 1fr);
+    gap: 14px; padding: 14px; align-items: start; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow); overflow: hidden; }
+  .card > .hd { padding: 10px 14px; border-bottom: 1px solid var(--line);
+    font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .card > .bd { padding: 12px 14px; }
+
+  /* screenshot + overlay */
+  .shot-wrap { position: relative; line-height: 0; background: #0b1020; }
+  #shot { width: 100%; display: block; }
+  #boxes { position: absolute; inset: 0; }
+  .box { position: absolute; border: 1.5px solid var(--blue); background: var(--blue-soft);
+    border-radius: 3px; cursor: pointer; transition: .12s; }
+  .box:hover { background: rgba(37,99,235,.18); }
+  .box.sel { border-color: var(--red); background: rgba(220,38,38,.18); border-width: 2px; }
+  .box.shadow { border-color: var(--purple); background: var(--purple-soft); }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 8px 12px;
+    font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px;
+    vertical-align: -1px; }
+
+  /* stats */
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat { flex: 1; min-width: 90px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px 10px; text-align: center; }
+  .stat .n { font-size: 20px; font-weight: 700; }
+  .stat .l { font-size: 11px; color: var(--muted); }
+  .stat.blue .n { color: var(--blue); }
+  .stat.purple .n { color: var(--purple); }
+  .stat.orange .n { color: var(--orange); }
+
+  /* element list */
+  .list { max-height: 460px; overflow: auto; }
+  details.scope { border-bottom: 1px solid var(--line); }
+  details.scope > summary { padding: 8px 12px; cursor: pointer; display: flex; align-items: center;
+    gap: 8px; user-select: none; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+  .badge.main { background: var(--blue-soft); color: var(--blue); }
+  .badge.shadow { background: var(--purple-soft); color: var(--purple); }
+  .badge.iframe { background: var(--orange-soft); color: var(--orange); }
+  .cnt { color: var(--muted); font-size: 12px; }
+  .row { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 28px;
+    border-top: 1px dashed var(--line); cursor: pointer; }
+  .row:hover { background: var(--bg); }
+  .row.sel { background: var(--blue-soft); }
+  .kind { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--line);
+    color: var(--muted); text-transform: uppercase; }
+  .kind.click { background: var(--blue-soft); color: var(--blue); }
+  .kind.fill { background: var(--purple-soft); color: var(--purple); }
+  .kind.select { background: var(--orange-soft); color: var(--orange); }
+  .lbl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* bottom panel / tabs */
+  .panel { margin: 0 14px 18px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .tabs button { background: var(--panel); }
+  .tabs button.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .tabpane { display: none; }
+  .tabpane.active { display: block; }
+
+  .kv { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: var(--bg);
+    border: 1px solid var(--line); }
+  .chip b { color: var(--muted); font-weight: 600; margin-right: 4px; }
+  .strat { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+  .strat .top { display: flex; align-items: center; gap: 8px; }
+  .strat .t { font-weight: 600; }
+  .strat pre { margin: 6px 0 0; background: #0b1020; color: #d7e3ff; padding: 8px 10px;
+    border-radius: 6px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .conf { font-size: 11px; padding: 1px 7px; border-radius: 999px; }
+  .conf.high { background: rgba(22,163,74,.12); color: var(--green); }
+  .conf.medium { background: rgba(217,119,6,.12); color: var(--amber); }
+  .conf.low { background: rgba(107,114,128,.14); color: var(--muted); }
+
+  textarea { width: 100%; min-height: 150px; font-family: ui-monospace, monospace; font-size: 12px;
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; }
+  .checks { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .check { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid var(--line); font-size: 13px; }
+  .check .ic { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+    color: #fff; font-size: 12px; font-weight: 700; }
+  .check.pass .ic { background: var(--green); }
+  .check.fail .ic { background: var(--red); }
+  .check .det { color: var(--muted); font-size: 12px; }
+  .verdict { margin-top: 8px; font-weight: 700; }
+  .verdict.pass { color: var(--green); }
+  .verdict.fail { color: var(--red); }
+
+  .decide-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  #goal { flex: 1; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+  .decision { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .decision .goal { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+  .decision .act { font-size: 15px; font-weight: 600; }
+  .decision .meta { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+  .bar { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 8px 0; }
+  .bar > i { display: block; height: 100%; background: var(--blue); }
+  .human { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+    padding: 2px 9px; border-radius: 999px; }
+  .human.yes { background: rgba(220,38,38,.12); color: var(--red); }
+  .human.no { background: rgba(22,163,74,.12); color: var(--green); }
+  .hint { color: var(--muted); font-size: 12px; }
+  .muted { color: var(--muted); }
+  a { color: var(--blue); }
+  #star { display:inline-flex; align-items:center; gap:4px; padding:7px 12px; border:1px solid var(--blue); border-radius:8px; text-decoration:none; font-weight:600; font-size:13px; }
+  #star:hover { background: var(--blue); color:#fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>JEV Web Control <small>网页自动化 · 穿透快照 · HITL 决策</small></h1>
+  <input id="url" placeholder="https://example.com  （支持任意网页，含 Shadow DOM / iframe）" />
+  <button id="observe" class="primary">观察页面</button>
+  <span id="status" class="status">空闲</span>
+  <a id="star" href="https://github.com/moshui963/jev-webcontrol" target="_blank" rel="noopener" title="给项目点个 Star ⭐">⭐ Star</a>
+</header>
+
+<main>
+  <!-- 左：截图 + 元素叠加 -->
+  <div class="card">
+    <div class="hd">页面截图 · 元素高亮 <span class="muted" id="shotMeta"></span></div>
+    <div class="shot-wrap">
+      <img id="shot" alt="页面截图" />
+      <div id="boxes"></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--blue)"></i>主文档元素</span>
+      <span><i class="dot" style="background:var(--purple)"></i>Shadow DOM 元素（已穿透）</span>
+      <span class="muted">iframe 内元素仅在右侧列表展示（跨文档坐标不可叠加）</span>
+    </div>
+  </div>
+
+  <!-- 右：统计 + 元素树 -->
+  <div style="display:flex; flex-direction:column; gap:14px;">
+    <div class="card">
+      <div class="hd">感知概览</div>
+      <div class="bd">
+        <div class="stats">
+          <div class="stat"><div class="n" id="stTotal">0</div><div class="l">候选操作</div></div>
+          <div class="stat blue"><div class="n" id="stMain">0</div><div class="l">主文档</div></div>
+          <div class="stat purple"><div class="n" id="stShadow">0</div><div class="l">Shadow</div></div>
+          <div class="stat orange"><div class="n" id="stIframe">0</div><div class="l">iframe</div></div>
+        </div>
+        <div class="hint" id="meta" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">元素树（按作用域分组） <span class="muted">点击查看定位器</span></div>
+      <div class="bd" style="padding:0;">
+        <div class="list" id="list"><div class="hint" style="padding:14px;">先点「观察页面」。</div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 底部：定位器 / 校验 / HITL -->
+<div class="panel">
+  <div class="tabs">
+    <button data-tab="loc" class="active">定位器详情</button>
+    <button data-tab="ver">声明式校验</button>
+    <button data-tab="hitl">HITL 步骤</button>
+  </div>
+
+  <div class="card tabpane active" id="tab-loc">
+    <div class="hd">合成定位器（按可靠性排序）</div>
+    <div class="bd" id="locBody"><div class="hint">在上方列表或截图中点选一个元素。</div></div>
+  </div>
+
+  <div class="card tabpane" id="tab-ver">
+    <div class="hd">在线校验（声明式 spec）</div>
+    <div class="bd">
+      <textarea id="spec">{
+  "verification": [
+    { "type": "url_matches", "regex": "example.com" },
+    { "type": "text_contains", "text": "Example" },
+    { "type": "element_present", "name": "Learn more" }
+  ]
+}</textarea>
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <button id="runVerify" class="primary">运行校验</button>
+        <span class="hint" style="align-self:center;">在当前已加载页面上执行 evaluateSpec</span>
+      </div>
+      <div class="checks" id="checks"></div>
+    </div>
+  </div>
+
+  <div class="card tabpane" id="tab-hitl">
+    <div class="hd">人工逐步确认（HITL）</div>
+    <div class="bd">
+      <div class="decide-row">
+        <input id="goal" placeholder="用自然语言描述目标，例如：点击登录 / 搜索 Kubernetes" />
+        <button id="decide" class="primary">决策</button>
+      </div>
+      <div id="decision"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let state = null;       // lite snapshot
+let screenshot = null;  // data url
+let selectedId = null;
+let lastDecision = null;
+
+function scopeType(scope) {
+  if (!scope) return "main";
+  if (/^iframe\[/.test(scope)) return "iframe";
+  if (/::shadow\//.test(scope)) return "shadow";
+  return "main";
+}
+function scopeLabel(scope) {
+  if (!scope) return "(主文档)";
+  return scope;
+}
+
+/* ------------------------------- observe ---------------------------------- */
+async function observe() {
+  const url = $("#url").value.trim();
+  if (!url) return;
+  setStatus("正在驱动 Chrome 观察页面…", "");
+  $("#observe").disabled = true;
+  try {
+    const r = await fetch("/api/observe", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url, waitMs: 6000 }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    state = data;
+    screenshot = "data:image/png;base64," + data.screenshot;
+    renderAll();
+    setStatus("观察完成 · " + data.actions.length + " 个候选", "ok");
+  } catch (e) {
+    setStatus("错误：" + e.message, "err");
+  } finally {
+    $("#observe").disabled = false;
+  }
+}
+
+function setStatus(t, cls) {
+  const s = $("#status");
+  s.textContent = t;
+  s.className = "status" + (cls ? " " + cls : "");
+}
+
+/* ------------------------------- render ----------------------------------- */
+function renderAll() {
+  renderScreenshot();
+  renderStats();
+  renderList();
+  $("#locBody").innerHTML = '<div class="hint">在上方列表或截图中点选一个元素。</div>';
+  selectedId = null;
+}
+
+function renderScreenshot() {
+  if (!screenshot) return;
+  const img = $("#shot");
+  img.src = screenshot;
+  img.onload = () => {
+    const W = img.naturalWidth || 1280, H = img.naturalHeight || 900;
+    const boxes = $("#boxes");
+    boxes.innerHTML = "";
+    for (const a of state.actions) {
+      const t = scopeType(a.scope);
+      if (t === "iframe") continue; // 跨文档，坐标不可叠加
+      const r = a.rect;
+      if (!r) continue;
+      const box = document.createElement("div");
+      box.className = "box" + (t === "shadow" ? " shadow" : "") + (a.id === selectedId ? " sel" : "");
+      box.style.left = (r.x / W * 100) + "%";
+      box.style.top = (r.y / H * 100) + "%";
+      box.style.width = (r.w / W * 100) + "%";
+      box.style.height = (r.h / H * 100) + "%";
+      box.title = a.label + " · " + a.kind;
+      box.onclick = () => select(a.id);
+      boxes.appendChild(box);
+    }
+    // 选中态更新
+    [...boxes.children].forEach((b, i) => {});
+  };
+  $("#shotMeta").textContent = state.url ? "" : "";
+}
+
+function renderStats() {
+  let main = 0, shadow = 0, iframe = 0;
+  for (const a of state.actions) {
+    const t = scopeType(a.scope);
+    if (t === "main") main++; else if (t === "shadow") shadow++; else iframe++;
+  }
+  $("#stTotal").textContent = state.actions.length;
+  $("#stMain").textContent = main;
+  $("#stShadow").textContent = shadow;
+  $("#stIframe").textContent = iframe;
+  $("#meta").textContent = "URL: " + (state.url || "-") + "  ·  标题: " + (state.title || "-");
+}
+
+function renderList() {
+  const groups = new Map();
+  for (const a of state.actions) {
+    const k = scopeLabel(a.scope);
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(a);
+  }
+  const list = $("#list");
+  list.innerHTML = "";
+  const sorted = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
+  for (const [scope, items] of sorted) {
+    const t = scopeType(scope === "(主文档)" ? "" : scope);
+    const det = document.createElement("details");
+    det.className = "scope";
+    det.open = true;
+    const summary = document.createElement("summary");
+    summary.innerHTML =
+      `<span class="badge ${t}">${t === "main" ? "主文档" : t === "shadow" ? "Shadow" : "iframe"}</span>` +
+      `<span class="lbl">${scope}</span><span class="cnt">${items.length}</span>`;
+    det.appendChild(summary);
+    for (const a of items) {
+      const row = document.createElement("div");
+      row.className = "row" + (a.id === selectedId ? " sel" : "");
+      row.dataset.id = a.id;
+      const kindCls = a.kind === "click" ? "click" : a.kind === "fill" ? "fill" : a.kind === "select" ? "select" : "";
+      row.innerHTML =
+        `<span class="kind ${kindCls}">${a.kind}</span>` +
+        `<span class="lbl" title="${esc(a.label)}">${esc(a.label || a.role)}</span>` +
+        `<span class="cnt">${a.role}</span>`;
+      row.onclick = () => select(a.id);
+      det.appendChild(row);
+    }
+    list.appendChild(det);
+  }
+}
+
+function select(id) {
+  selectedId = id;
+  const a = state.actions.find((x) => x.id === id);
+  // update box + row highlights
+  [...$("#boxes").children].forEach((b, i) => {
+    const acts = state.actions.filter((x) => scopeType(x.scope) !== "iframe");
+    b.classList.toggle("sel", acts[i] && acts[i].id === id);
+  });
+  [...$("#list").querySelectorAll(".row")].forEach((r) =>
+    r.classList.toggle("sel", r.dataset.id === id)
+  );
+  renderLocator(a);
+}
+
+/* ------------------------------ locator ----------------------------------- */
+function renderLocator(a) {
+  const loc = a.locator || {};
+  const stratHtml = (loc.strategies || [])
+    .map((s, i) => {
+      const sel = s.selector || s.name || s.role || "-";
+      return `<div class="strat">
+        <div class="top">
+          <span class="t">${i + 1}. ${s.type}</span>
+          <span class="conf ${s.confidence}">${s.confidence}</span>
+        </div>
+        <pre>${esc(sel)}</pre>
+      </div>`;
+    })
+    .join("");
+  const attrs = Object.entries(a.attrs || {})
+    .map(([k, v]) => `<span class="chip"><b>${k}</b>${esc(String(v))}</span>`)
+    .join("");
+  $("#locBody").innerHTML = `
+    <div class="kv" style="margin-bottom:10px;">
+      <span class="chip"><b>role</b>${a.role}</span>
+      <span class="chip"><b>kind</b>${a.kind}</span>
+      <span class="chip"><b>scope</b>${esc(scopeLabel(a.scope))}</span>
+    </div>
+    <div class="muted" style="margin-bottom:6px;">可读名：${esc(a.label)}</div>
+    ${stratHtml}
+    <div class="muted" style="margin:10px 0 4px;">属性</div>
+    <div class="kv">${attrs || '<span class="hint">无</span>'}</div>
+    <div style="margin-top:10px;"><button id="copyLoc">复制最优定位器</button></div>
+  `;
+  $("#copyLoc").onclick = () => {
+    const best = (loc.strategies || [])[0];
+    if (best) navigator.clipboard.writeText(best.selector || best.name || "");
+  };
+}
+
+/* ------------------------------- verify ------------------------------------ */
+async function runVerify() {
+  let spec;
+  try {
+    spec = JSON.parse($("#spec").value);
+  } catch (e) {
+    $("#checks").innerHTML = '<div class="check fail"><span class="ic">!</span><span>spec 不是合法 JSON：' + esc(e.message) + "</span></div>";
+    return;
+  }
+  $("#runVerify").disabled = true;
+  try {
+    const r = await fetch("/api/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ spec }),
+    });
+    const data = await r.json();
+    if (data.error) throw new Error(data.error);
+    renderChecks(data);
+  } catch (e) {
+    $("#checks").innerHTML = '<div class="check fail"><span class="ic">!</span><span>' + esc(e.message) + "</span></div>";
+  } finally {
+    $("#runVerify").disabled = false;
+  }
+}
+
+function renderChecks(data) {
+  const html = (data.checks || [])
+    .map((c) => `<div class="check ${c.ok ? "pass" : "fail"}">
+        <span class="ic">${c.ok ? "✓" : "✕"}</span>
+        <span><b>${c.type}</b> ${c.ok ? "" : '— <span class="det">' + esc(c.detail || "") + "</span>"}</span>
+      </div>`)
+    .join("");
+  const verdict = `<div class="verdict ${data.passed ? "pass" : "fail"}">${data.passed ? "✓ 全部通过" : "✕ 存在未通过项"}</div>`;
+  $("#checks").innerHTML = html + verdict;
+}
+
+/* -------------------------------- HITL ------------------------------------ */
+async function decide() {
+  const goal = $("#goal").value.trim();
+  if (!goal) return;
+  const r = await fetch("/api/decide", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ goal }),
+  });
+  const d = await r.json();
+  lastDecision = d;
+  const a = d.action;
+  const actHtml = a
+    ? `<div class="act">${esc(a.label)} <span class="muted">(${a.role} · ${a.kind})</span></div>
+       <div class="meta">
+         <span class="badge ${scopeType(a.scope)}">${scopeType(a.scope) === "main" ? "主文档" : scopeType(a.scope) === "shadow" ? "Shadow" : "iframe"}</span>
+         <span class="cnt">${esc(scopeLabel(a.scope))}</span>
+       </div>`
+    : `<div class="act muted">未找到匹配元素</div>`;
+  const conf = Math.round((d.confidence || 0) * 100);
+  $("#decision").innerHTML = `
+    <div class="decision">
+      <div class="goal">目标：${esc(d.goal)}</div>
+      ${actHtml}
+      <div class="bar"><i style="width:${conf}%"></i></div>
+      <div class="meta">
+        <span>置信度：<b>${conf}%</b></span>
+        <span class="human ${d.needsHuman ? "yes" : "no"}">${d.needsHuman ? "⚠ 需人工确认" : "✓ 可自动执行"}</span>
+      </div>
+      <div class="hint">${esc(d.rationale)}</div>
+      <div style="margin-top:10px; display:flex; gap:8px;">
+        <button id="confirm" class="primary" ${a ? "" : "disabled"}>确认执行</button>
+        <button id="reject">拒绝 / 转人工</button>
+      </div>
+      <div id="actResult" style="margin-top:8px;"></div>
+    </div>`;
+  if (a) $("#confirm").onclick = () => confirmAct(a.id);
+  $("#reject").onclick = () => {
+    $("#actResult").innerHTML = '<span class="human yes">已转人工处理</span>';
+  };
+}
+
+async function confirmAct(actionId) {
+  $("#confirm").disabled = true;
+  const r = await fetch("/api/act", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ actionId }),
+  });
+  const data = await r.json();
+  if (data.error) {
+    $("#actResult").innerHTML = '<span class="human yes">执行失败：' + esc(data.error) + "</span>";
+    return;
+  }
+  // refresh view with the post-action page state
+  state = data;
+  screenshot = "data:image/png;base64," + data.screenshot;
+  selectedId = null;
+  renderAll();
+  const ok = data.result && data.result.ok;
+  $("#actResult").innerHTML = ok
+    ? `<span class="human no">✓ 已执行 ${esc(data.result.kind || "")} · 页面已刷新</span>`
+    : `<span class="human yes">执行未完成：${esc((data.result && data.result.reason) || "未知")}</span>`;
+}
+
+/* -------------------------------- utils ----------------------------------- */
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* -------------------------------- wiring ---------------------------------- */
+$("#observe").onclick = observe;
+$("#url").addEventListener("keydown", (e) => { if (e.key === "Enter") observe(); });
+$("#runVerify").onclick = runVerify;
+$("#decide").onclick = decide;
+$("#goal").addEventListener("keydown", (e) => { if (e.key === "Enter") decide(); });
+document.querySelectorAll(".tabs button").forEach((b) => {
+  b.onclick = () => {
+    document.querySelectorAll(".tabs button").forEach((x) => x.classList.remove("active"));
+    document.querySelectorAll(".tabpane").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+    $("#tab-" + b.dataset.tab).classList.add("active");
+  };
+});
+</script>
+</body>
+</html>

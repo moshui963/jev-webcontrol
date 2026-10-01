@@ -1,0 +1,43 @@
+{
+  "url": "https://flights.example.com/v2/search?from=Z%C3%BCrich&to=London",
+  "title": "Flight results — Zürich to London",
+  "text": "Flights from Zürich to London. 12 results found. Where from? Where to? Search",
+  "actions": [
+    {
+      "id": "e1", "kind": "fill", "node": 1, "label": "Where from?", "role": "textbox",
+      "scope": "", "value": "Zürich",
+      "attrs": {"id": "from", "name": "origin", "placeholder": "Where from?"},
+      "locator": {
+        "scope": "", "role": "textbox", "name": "Where from?",
+        "strategies": [
+          {"type": "semantic", "role": "textbox", "name": "Where from?", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"from\"]", "confidence": "high"}
+        ]
+      }
+    },
+    {
+      "id": "e2", "kind": "fill", "node": 2, "label": "Where to?", "role": "textbox",
+      "scope": "", "value": "London",
+      "attrs": {"id": "to", "name": "destination", "placeholder": "Where to?"},
+      "locator": {
+        "scope": "", "role": "textbox", "name": "Where to?",
+        "strategies": [
+          {"type": "semantic", "role": "textbox", "name": "Where to?", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"to\"]", "confidence": "high"}
+        ]
+      }
+    },
+    {
+      "id": "e9", "kind": "click", "node": 9, "label": "搜索", "role": "button",
+      "scope": "div#topbar::shadow/", "value": "",
+      "attrs": {"id": "search2", "aria-label": "搜索"},
+      "locator": {
+        "scope": "div#topbar::shadow/", "role": "button", "name": "搜索",
+        "strategies": [
+          {"type": "semantic", "role": "button", "name": "搜索", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"search2\"]", "confidence": "high"}
+        ]
+      }
+    }
+  ]
+}

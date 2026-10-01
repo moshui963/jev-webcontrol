@@ -1,0 +1,36 @@
+{
+  "name": "jev-webcontrol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discover best automation paths and self-repair changed flows via a Jev-style fast-decision browser agent, packaged as a reusable Skill.",
+  "type": "module",
+  "scripts": {
+    "test:snapshot": "node tests/test_snapshot.mjs",
+    "test:locator": "node tests/test_locator.mjs",
+    "test:verify": "node tests/test_verify.mjs",
+    "test:collector": "node tests/test_menu_wrapper.mjs && node tests/test_resolver.mjs",
+    "test:goal": "node tests/test_goal_complete.mjs",
+    "test:scope": "node tests/test_scope_narrow.mjs",
+    "test:occlusion": "node tests/test_probe_occlusion.mjs",
+    "test:policy": "node tests/test_probe_policy.mjs",
+    "test:sweep": "node tests/test_probe_sweep.mjs",
+    "test:cues": "node tests/test_dom_cues.mjs",
+    "test:js": "node tests/test_snapshot.mjs && node tests/test_locator.mjs && node tests/test_verify.mjs && node tests/test_menu_wrapper.mjs && node tests/test_resolver.mjs && node tests/test_goal_complete.mjs && node tests/test_scope_narrow.mjs && node tests/test_probe_occlusion.mjs && node tests/test_probe_policy.mjs && node tests/test_probe_sweep.mjs && node tests/test_dom_cues.mjs && node tests/test_export_complete.mjs && node tests/test_fill_judgment.mjs && node tests/test_fill_dom.mjs && node tests/test_taxonomy.mjs && node tests/test_classify_drift.mjs && node tests/test_goal_parse.mjs",
+    "test:py": "python scripts/policy.py && python scripts/decide.py && python tests/test_pipeline.py",
+    "test": "npm run test:js",
+    "demo": "node examples/demo_observe.mjs",
+    "demo:verify": "node examples/demo_verify.mjs",
+    "demo:pipeline": "python examples/demo_pipeline.py",
+    "package": "python scripts/package.py",
+    "repair": "python scripts/repair.py",
+    "live:csdn": "node examples/live_observe.mjs",
+    "live:penetration": "node examples/demo_live_penetration.mjs",
+    "test:live": "node examples/demo_live_penetration.mjs",
+    "web": "node server.mjs",
+    "ui": "node server.mjs",
+    "demo:serve": "node examples/serve_demo.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.0"
+  }
+}

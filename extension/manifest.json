@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "JEV Web Control",
+  "version": "0.4.31",
+  "description": "自然语言网页自动化：多标签束搜索找最佳路线，产出 Agent 可消费的结构化方案",
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "scripting",
+    "storage",
+    "sidePanel",
+    "webNavigation",
+    "debugger",
+    "downloads"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/snapshot_injected.js",
+        "content/content.js"
+      ],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel/panel.html"
+  },
+  "action": {
+    "default_title": "打开 JEV Web Control"
+  }
+}

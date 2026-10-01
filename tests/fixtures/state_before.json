@@ -1,0 +1,60 @@
+{
+  "url": "https://flights.example.com/",
+  "title": "Flight search",
+  "text": "Book a flight. Where from? Where to? Search",
+  "actions": [
+    {
+      "id": "e1", "kind": "fill", "node": 1, "label": "Where from?", "role": "textbox",
+      "scope": "", "value": "",
+      "attrs": {"id": "from", "name": "origin", "placeholder": "Where from?"},
+      "locator": {
+        "scope": "", "role": "textbox", "name": "Where from?",
+        "strategies": [
+          {"type": "semantic", "role": "textbox", "name": "Where from?", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"from\"]", "confidence": "high"},
+          {"type": "css", "selector": "[name=\"origin\"]", "confidence": "medium"},
+          {"type": "css-path", "selector": "input:nth-of-type(1)", "confidence": "low"}
+        ]
+      }
+    },
+    {
+      "id": "e2", "kind": "fill", "node": 2, "label": "Where to?", "role": "textbox",
+      "scope": "", "value": "",
+      "attrs": {"id": "to", "name": "destination", "placeholder": "Where to?"},
+      "locator": {
+        "scope": "", "role": "textbox", "name": "Where to?",
+        "strategies": [
+          {"type": "semantic", "role": "textbox", "name": "Where to?", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"to\"]", "confidence": "high"},
+          {"type": "css-path", "selector": "input:nth-of-type(2)", "confidence": "low"}
+        ]
+      }
+    },
+    {
+      "id": "e3", "kind": "click", "node": 3, "label": "搜索", "role": "button",
+      "scope": "",
+      "attrs": {"id": "search-btn", "aria-label": "搜索"},
+      "locator": {
+        "scope": "", "role": "button", "name": "搜索",
+        "strategies": [
+          {"type": "semantic", "role": "button", "name": "搜索", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"search-btn\"]", "confidence": "high"},
+          {"type": "css", "selector": "[aria-label=\"搜索\"]", "confidence": "medium"},
+          {"type": "css-path", "selector": "button:nth-of-type(2)", "confidence": "low"}
+        ]
+      }
+    },
+    {
+      "id": "e4", "kind": "click", "node": 4, "label": "旧导出", "role": "button",
+      "scope": "",
+      "attrs": {"id": "legacy-export"},
+      "locator": {
+        "scope": "", "role": "button", "name": "旧导出",
+        "strategies": [
+          {"type": "semantic", "role": "button", "name": "旧导出", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"legacy-export\"]", "confidence": "high"}
+        ]
+      }
+    }
+  ]
+}

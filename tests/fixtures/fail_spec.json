@@ -1,0 +1,6 @@
+{
+  "verification": [
+    { "type": "url_matches", "regex": "/nope/" },
+    { "type": "element_present", "name": "不存在的元素" }
+  ]
+}

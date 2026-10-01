@@ -1,0 +1,155 @@
+{
+  "name": "flight-search-zurich-london",
+  "goal": "在 flights.example.com 搜索 苏黎世→伦敦 的航班",
+  "steps": [
+    {
+      "id": "s1",
+      "operation": "TYPE_TEXT",
+      "target_label": "Where from?",
+      "text": "Zürich",
+      "scope": "",
+      "role": "textbox",
+      "name": "Where from?",
+      "locator": {
+        "scope": "",
+        "role": "textbox",
+        "name": "Where from?",
+        "strategies": [
+          {
+            "type": "semantic",
+            "role": "textbox",
+            "name": "Where from?",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[id=\"from\"]",
+            "confidence": "high"
+          }
+        ]
+      },
+      "verification": [
+        {
+          "type": "field_value",
+          "name": "Where from?",
+          "equals": "Zürich"
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "operation": "TYPE_TEXT",
+      "target_label": "Where to?",
+      "text": "London",
+      "scope": "",
+      "role": "textbox",
+      "name": "Where to?",
+      "locator": {
+        "scope": "",
+        "role": "textbox",
+        "name": "Where to?",
+        "strategies": [
+          {
+            "type": "semantic",
+            "role": "textbox",
+            "name": "Where to?",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[id=\"to\"]",
+            "confidence": "high"
+          }
+        ]
+      },
+      "verification": [
+        {
+          "type": "field_value",
+          "name": "Where to?",
+          "equals": "London"
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "operation": "CLICK",
+      "target_label": "搜索",
+      "scope": "",
+      "role": "button",
+      "name": "搜索",
+      "locator": {
+        "scope": "",
+        "role": "button",
+        "name": "搜索",
+        "strategies": [
+          {
+            "type": "semantic",
+            "role": "button",
+            "name": "搜索",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[id=\"search-btn\"]",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[aria-label=\"搜索\"]",
+            "confidence": "medium"
+          }
+        ]
+      },
+      "verification": [
+        {
+          "type": "url_matches",
+          "regex": "/v2|/search|/results"
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "operation": "CLICK",
+      "target_label": "旧导出",
+      "scope": "",
+      "role": "button",
+      "name": "旧导出",
+      "locator": {
+        "scope": "",
+        "role": "button",
+        "name": "旧导出",
+        "strategies": [
+          {
+            "type": "semantic",
+            "role": "button",
+            "name": "旧导出",
+            "confidence": "high"
+          },
+          {
+            "type": "css",
+            "selector": "[id=\"legacy-export\"]",
+            "confidence": "high"
+          }
+        ]
+      }
+    }
+  ],
+  "spec": {
+    "verification": [
+      {
+        "type": "field_value",
+        "name": "Where from?",
+        "equals": "Zürich"
+      },
+      {
+        "type": "field_value",
+        "name": "Where to?",
+        "equals": "London"
+      },
+      {
+        "type": "element_present",
+        "name": "搜索"
+      }
+    ]
+  }
+}

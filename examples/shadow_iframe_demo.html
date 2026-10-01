@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh">
+<head><meta charset="utf-8"><title>Shadow + Iframe 穿透靶子</title></head>
+<body>
+  <h1>主文档</h1>
+  <button id="main-save">主文档保存</button>
+
+  <div id="shadow-host"></div>
+
+  <iframe id="frame-a" src="/examples/shadow_iframe_inner.html"></iframe>
+
+  <script>
+    // 把主文档的一个按钮塞进 open shadow root（模拟 Salesforce Lightning / Lit 组件）
+    const host = document.getElementById("shadow-host");
+    const sr = host.attachShadow({ mode: "open" });
+    const b = document.createElement("button");
+    b.id = "lightning-save";
+    b.textContent = "Lightning 保存";
+    sr.appendChild(b);
+  </script>
+</body>
+</html>

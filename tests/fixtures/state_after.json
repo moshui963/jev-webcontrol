@@ -1,0 +1,56 @@
+{
+  "url": "https://flights.example.com/v2",
+  "title": "Flight search (new)",
+  "text": "Book a flight. Where from? Where to? Search results below.",
+  "actions": [
+    {
+      "id": "e1", "kind": "fill", "node": 1, "label": "Where from?", "role": "textbox",
+      "scope": "", "value": "",
+      "attrs": {"id": "from", "name": "origin", "placeholder": "Where from?"},
+      "locator": {
+        "scope": "", "role": "textbox", "name": "Where from?",
+        "strategies": [
+          {"type": "semantic", "role": "textbox", "name": "Where from?", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"from\"]", "confidence": "high"}
+        ]
+      }
+    },
+    {
+      "id": "e2", "kind": "fill", "node": 2, "label": "Where to?", "role": "textbox",
+      "scope": "", "value": "",
+      "attrs": {"id": "to", "name": "destination", "placeholder": "Where to?"},
+      "locator": {
+        "scope": "", "role": "textbox", "name": "Where to?",
+        "strategies": [
+          {"type": "semantic", "role": "textbox", "name": "Where to?", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"to\"]", "confidence": "high"}
+        ]
+      }
+    },
+    {
+      "id": "e9", "kind": "click", "node": 9, "label": "搜索", "role": "button",
+      "scope": "div#topbar::shadow/", "value": "",
+      "attrs": {"id": "search2", "aria-label": "搜索"},
+      "locator": {
+        "scope": "div#topbar::shadow/", "role": "button", "name": "搜索",
+        "strategies": [
+          {"type": "semantic", "role": "button", "name": "搜索", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"search2\"]", "confidence": "high"},
+          {"type": "css", "selector": "[aria-label=\"搜索\"]", "confidence": "medium"}
+        ]
+      }
+    },
+    {
+      "id": "e10", "kind": "click", "node": 10, "label": "新导出", "role": "button",
+      "scope": "", "value": "",
+      "attrs": {"id": "new-export", "aria-label": "导出"},
+      "locator": {
+        "scope": "", "role": "button", "name": "新导出",
+        "strategies": [
+          {"type": "semantic", "role": "button", "name": "新导出", "confidence": "high"},
+          {"type": "css", "selector": "[id=\"new-export\"]", "confidence": "high"}
+        ]
+      }
+    }
+  ]
+}

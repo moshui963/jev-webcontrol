@@ -1,0 +1,21 @@
+{
+  "verification": [
+    {
+      "type": "url_matches",
+      "regex": "/dashboard"
+    },
+    {
+      "type": "text_contains",
+      "text": "欢迎"
+    },
+    {
+      "type": "element_present",
+      "name": "退出"
+    },
+    {
+      "type": "field_value",
+      "name": "username",
+      "equals": "张三"
+    }
+  ]
+}
