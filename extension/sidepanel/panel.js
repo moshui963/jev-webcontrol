@@ -751,11 +751,8 @@ $("jevTestBtn").addEventListener("click", async () => {
   }
 });
 
-// init
-sendMsg({ type: "GET_STATE" }).then((res) => {
-  if (!res?.ok) return;
-  renderState(res.state);
-  const c = res.state.config || {};
+// ---- 冷启动即时渲染：不依赖 service worker 唤醒，先本地填充，再重试 GET_STATE ----
+function applyConfig(c) {
   if (c.typesafeModel) $("typesafeModel").value = c.typesafeModel;
   if (c.typesafeEndpoint) $("typesafeEndpoint").value = c.typesafeEndpoint;
   if (c.jevAdapter) $("jevAdapter").value = c.jevAdapter;
@@ -775,6 +772,39 @@ sendMsg({ type: "GET_STATE" }).then((res) => {
   if (c.hasVisionKey) $("visionKey").placeholder = "已配置（输入可更换）";
   if (c.hasTypesafeKey) $("typesafeKey").placeholder = "已配置（输入可更换）";
   if (c.hasDeepseekKey) $("deepseekKey").placeholder = "已配置（输入可更换）";
-  refreshChannelMeta(c);
-  if (res.state.run?.running) startPolling();
-}).catch(() => {});
+}
+
+function showInstantPlaceholders() {
+  // 立即显示欢迎语，避免“白屏/文字少”
+  const chat = $("chat");
+  if (chat && !chat.children.length) {
+    const w = document.createElement("div");
+    w.className = "msg sys";
+    w.style.whiteSpace = "pre-wrap";
+    w.textContent = "欢迎使用 JEV Web Control 👋\n在下方描述你的网页自动化目标，或先到「设置」配置 JEV 模型。";
+    chat.appendChild(w);
+  }
+  // 本地存储先填设置页
+  try {
+    chrome.storage.local.get("config", (d) => {
+      if (d && d.config) applyConfig(d.config);
+    });
+  } catch (_) {}
+}
+
+function initGetState(attempt) {
+  attempt = attempt || 1;
+  sendMsg({ type: "GET_STATE" })
+    .then((res) => {
+      if (!res?.ok) { if (attempt < 5) return initGetState(attempt + 1); return; }
+      renderState(res.state);
+      applyConfig(res.state.config || {});
+      refreshChannelMeta(res.state.config || {});
+      if (res.state.run?.running) startPolling();
+    })
+    .catch(() => { if (attempt < 5) setTimeout(() => initGetState(attempt + 1), 400); });
+}
+
+// init
+showInstantPlaceholders();
+initGetState(1);
