@@ -135,3 +135,70 @@ input[type=text] { width: 100%; padding: 6px; border: 1px solid var(--border); b
 .cfg-actions { display:flex; align-items:center; gap:10px; margin-top:8px; }
 .cfg-actions button { padding:6px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; color:var(--text); }
 .cfg-actions button:hover { border-color:var(--blue); color:var(--blue); }
+
+/* ================= v0.5 模型渠道（渠道列表 + 弹窗） ================= */
+.cfg-h { margin:0 0 2px; font-size:15px; }
+.cfg-h-sub { margin:0 0 10px; }
+.panel-card { border:1px solid var(--border); border-radius:12px; background:#fff; padding:14px; }
+.card-title { font-weight:700; font-size:14px; }
+.card-sub { margin:3px 0 10px; line-height:1.5; }
+.btn-dark { padding:7px 14px; border:none; background:#111827; color:#fff; border-radius:8px; cursor:pointer; font-size:13px; }
+.btn-dark:hover { background:#000; }
+.btn-ghost { padding:6px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; color:var(--text); font-size:13px; }
+.btn-ghost:hover { border-color:var(--blue); color:var(--blue); }
+
+.ch-list { margin-top:12px; display:flex; flex-direction:column; gap:10px; }
+.ch-card { display:flex; align-items:center; justify-content:space-between; gap:10px; border:1px solid var(--border); border-radius:10px; background:#fff; padding:12px 14px; }
+.ch-card-main { min-width:0; }
+.ch-card-name { font-weight:700; font-size:13px; }
+.ch-card-name .ch-badge { vertical-align:middle; }
+.ch-card-sub { font-size:11px; color:var(--muted); margin-top:3px; word-break:break-all; }
+.ch-card-actions { display:flex; align-items:center; gap:8px; flex:none; }
+.btn-edit { padding:5px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; font-size:12px; }
+.btn-edit:hover { border-color:var(--blue); color:var(--blue); }
+.btn-del { padding:5px 8px; border:1px solid #fecaca; background:#fff; border-radius:8px; cursor:pointer; color:var(--red); font-size:12px; }
+.btn-del:hover { background:#fef2f2; }
+
+/* 弹窗 */
+.modal-mask { position:fixed; inset:0; background:rgba(15,23,42,.42); display:flex; align-items:flex-start; justify-content:center; z-index:50; padding:24px 12px; overflow:auto; }
+.modal { background:#fff; border-radius:12px; width:100%; max-width:640px; box-shadow:0 20px 50px rgba(0,0,0,.28); }
+.modal-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px; border-bottom:1px solid var(--border); }
+.modal-title { font-weight:700; font-size:15px; display:flex; align-items:center; gap:8px; }
+.modal-head-actions { display:flex; gap:8px; }
+.modal-x { border:none; background:transparent; font-size:16px; color:var(--muted); cursor:pointer; padding:4px 8px; }
+.modal-body { padding:14px 16px; }
+.modal-foot { display:flex; justify-content:flex-end; gap:8px; padding:12px 16px; border-top:1px solid var(--border); }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.modal .field { margin:0 0 12px; display:block; }
+.modal .field > span { display:block; font-size:12px; color:var(--text); margin-bottom:5px; }
+.modal .field input[type=text], .modal .field input[type=password], .modal .field select { width:100%; padding:7px 8px; border:1px solid var(--border); border-radius:8px; font-size:13px; background:#fff; color:var(--text); }
+.modal .field input:focus, .modal .field select:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 2px rgba(37,99,235,.14); }
+.pw-eye { position:absolute; right:6px; top:50%; transform:translateY(-50%); border:none; background:transparent; color:var(--muted); cursor:pointer; font-size:14px; padding:4px 6px; }
+
+.models-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin:6px 0 8px; }
+.model-rows { display:flex; flex-direction:column; gap:8px; }
+.model-row { display:flex; align-items:center; gap:8px; border:1px solid var(--border); border-radius:8px; padding:8px 10px; background:#fff; }
+.model-row .mr-empty { color:var(--muted); font-size:12px; }
+.mr-name { font-weight:600; font-size:12px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mr-caps { display:flex; gap:4px; flex:none; }
+.cap { font-size:10px; padding:1px 7px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:#f8fafc; cursor:pointer; }
+.cap.on { background:#eff6ff; border-color:var(--blue); color:var(--blue); font-weight:600; }
+.mr-del { border:1px solid #fecaca; background:#fff; color:var(--red); border-radius:6px; cursor:pointer; padding:3px 7px; font-size:11px; flex:none; }
+
+/* 选择模型弹窗 */
+.mm-count { font-weight:400; }
+.mm-toolbar { display:flex; gap:8px; flex-wrap:wrap; }
+.mm-toolbar input[type=text] { flex:1; min-width:130px; padding:7px 8px; border:1px solid var(--border); border-radius:8px; font-size:13px; }
+.mm-toolbar input:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 2px rgba(37,99,235,.14); }
+.mm-hint { margin:8px 0; }
+.mm-tabs { display:flex; gap:16px; border-bottom:1px solid var(--border); margin-bottom:8px; }
+.mm-tab { border:none; background:transparent; padding:8px 2px; cursor:pointer; color:var(--muted); font-size:13px; }
+.mm-tab.active { color:var(--blue); font-weight:700; box-shadow:inset 0 -2px 0 var(--blue); }
+.mm-sub { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; font-size:12px; color:var(--muted); }
+.mm-sub-actions { display:flex; gap:8px; }
+.mm-list { display:grid; grid-template-columns:1fr 1fr; gap:6px; min-height:80px; max-height:260px; overflow:auto; border:1px solid var(--border); border-radius:8px; padding:8px; }
+.mm-item { display:flex; align-items:center; gap:8px; font-size:12px; padding:4px 6px; border-radius:6px; min-width:0; }
+.mm-item:hover { background:var(--panel); }
+.mm-item input { flex:none; }
+.mm-item span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mm-pullmsg { margin-top:6px; }
