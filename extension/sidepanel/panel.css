@@ -111,11 +111,11 @@ input[type=text] { width: 100%; padding: 6px; border: 1px solid var(--border); b
 .goal-card .gok { color: var(--green); }
 
 /* ---- top bar（品牌 + Star） ---- */
-.topbar { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:linear-gradient(90deg,#2563eb,#7c3aed); color:#fff; }
+.topbar { display:flex; flex-direction:column; align-items:flex-start; gap:6px; padding:10px 12px; background:linear-gradient(90deg,#2563eb,#7c3aed); color:#fff; }
 .brand { display:flex; align-items:baseline; gap:8px; min-width:0; }
 .brand-name { font-weight:700; font-size:14px; white-space:nowrap; }
 .brand-author { font-size:11px; opacity:.85; white-space:nowrap; }
-.star-link { color:#fff; font-weight:700; text-decoration:none; background:rgba(255,255,255,.18); padding:5px 12px; border-radius:999px; font-size:12px; white-space:nowrap; transition:background .15s; }
+.star-link { color:#fff; font-weight:700; text-decoration:none; background:rgba(255,255,255,.18); padding:6px 12px; border-radius:8px; font-size:12px; line-height:1.4; display:inline-block; transition:background .15s; }
 .star-link:hover { background:rgba(255,255,255,.32); }
 
 /* ---- 模型配置：主流分组表单 ---- */
