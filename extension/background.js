@@ -36,6 +36,13 @@ const DEFAULT_CONFIG = {
   sweepStrategy: "onDemand", // onDemand(仅探针miss才扫,推荐) | everyStep | random | lastStep | never
   sweepMaxSteps: 6, // 最大滚动屏数（"滑动几下"）
   sweepStepRatio: 0.8, // 每次滚动占视口比例
+  // v0.5: 模型渠道（渠道列表 UI）——每个渠道可自定义名称、维护一组模型
+  // （含能力标签），并可与引擎主模型同步。channelNames 是显示名覆盖，
+  // jevModels/dsModels/visModels 是各渠道的模型清单 [{name, caps:[...]}]。
+  channelNames: {}, // { jev?: "…", ds?: "…", vis?: "…", bu?: "…" }
+  jevModels: [], // JEV 决策引擎渠道的模型清单
+  dsModels: [], // DeepSeek 路线裁判渠道的模型清单
+  visModels: [], // Vision 视觉兜底渠道的模型清单
 };
 const config = { ...DEFAULT_CONFIG };
 chrome.storage.local.get("config").then((d) => Object.assign(config, d.config || {})).catch(() => {});
@@ -1957,6 +1964,12 @@ function publicState() {
       hasTypesafeKey: !!config.typesafeKey,
       hasDeepseekKey: !!config.deepseekKey,
       hasVisionKey: !!(config.visionKey || config.deepseekKey),
+      // v0.5 模型渠道：渠道显示名覆盖 + 各渠道模型清单
+      channelNames: config.channelNames || {},
+      jevModels: config.jevModels || [],
+      dsModels: config.dsModels || [],
+      visModels: config.visModels || [],
+      channels: config.channels || [],
     },
     run: state.run
       ? {
@@ -2221,6 +2234,38 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
         state.runLogRev = (state.runLogRev || 0) + 1;
         persistState();
         return { ok: true, state: publicState() };
+
+      case "LIST_MODELS": {
+        // 模型渠道编辑弹窗的「拉取模型列表」：GET 上游 OpenAI 兼容 /models。
+        // base/key 优先取面板传来的值（用户正在编辑），留空则回退到已保存配置。
+        const ch = msg.channel;
+        const baseOf = (c) =>
+          c === "jev" ? config.typesafeEndpoint
+          : c === "ds" ? config.deepseekBase
+          : c === "vis" ? config.visionBase
+          : c === "bu" ? config.browserUseUrl
+          : "";
+        const keyOf = (c) =>
+          c === "jev" ? config.typesafeKey
+          : c === "ds" ? config.deepseekKey
+          : c === "vis" ? config.visionKey
+          : "";
+        let base = (msg.base || "").trim() || (baseOf(ch) || "").trim();
+        base = base.replace(/\/+$/, "");
+        const key = (msg.key || "").trim() || (keyOf(ch) || "").trim();
+        if (!base) return { ok: false, reason: "请先填写接口地址" };
+        const url = /\/models$/.test(base) ? base : base + "/models";
+        try {
+          const r = await fetch(url, { headers: key ? { Authorization: "Bearer " + key } : {} });
+          if (!r.ok) return { ok: false, reason: `HTTP ${r.status}（上游可能不提供 /models 列表接口）` };
+          const j = await r.json();
+          const raw = j.data || j.models || [];
+          const models = raw.map((m) => (typeof m === "string" ? m : m.id || m.name || m.model)).filter(Boolean);
+          return { ok: true, models, url };
+        } catch (e) {
+          return { ok: false, reason: (e && e.message) || String(e) };
+        }
+      }
 
       case "JEV_TEST": {
         if (!config.typesafeKey) return { ok: false, reason: "未配置 jev API Key（在设置页填写）" };
