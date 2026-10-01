@@ -103,93 +103,17 @@
       <label>租户 <input id="userTenant" type="text" /></label>
     </div>
 
-    <!-- 模型配置：分组表单（主流设置页风格） -->
+    <!-- 模型配置：渠道列表（参考主流多渠道形态） -->
     <div id="sub-modelCfg" class="subpane">
-      <p class="muted" style="margin:2px 0 10px">每个能力一路模型渠道：<b>JEV 决策引擎</b>（阿里云 decision-model-preview，快速决策）、DeepSeek（计划解析与路线裁判）、Vision（视觉兜底）。Key 仅保存在浏览器本地（chrome.storage），全部留空即本地 mock 模式。</p>
+      <h3 class="cfg-h">模型渠道</h3>
+      <p class="muted cfg-h-sub">AI 渠道（接口地址 / Key / 模型）与各用途的默认模型。</p>
 
-      <fieldset class="cfg-group">
-        <legend><span class="cfg-title">JEV 决策引擎</span><span id="jevStatus" class="ch-badge off">未配置</span></legend>
-        <p id="jevSub" class="cfg-sub"></p>
-        <div class="field">
-          <label for="jevAdapter">模型类型</label>
-          <select id="jevAdapter" title="适配不同 jev 后端 API 格式">
-            <option value="typesafe">SystemOne 兼容格式（noul 探针）</option>
-            <option value="openai">OpenAI 兼容（chat/completions）</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="typesafeEndpoint">端点 URL</label>
-          <input id="typesafeEndpoint" type="text" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1" />
-          <span class="hint">阿里云百炼 OpenAI 兼容接口。若用私有 MaaS 工作区，替换为对应的 /compatible-mode/v1 地址。</span>
-        </div>
-        <div class="field">
-          <label for="typesafeModel">模型名</label>
-          <input id="typesafeModel" type="text" value="decision-model-preview" placeholder="decision-model-preview" />
-          <span class="hint">默认即阿里云 <b>decision-model-preview</b>（JEV 快速决策模型），可换成 jev-latest 等。</span>
-        </div>
-        <div class="field">
-          <label for="typesafeKey">API Key</label>
-          <div class="pw">
-            <input id="typesafeKey" type="password" placeholder="sk-...（留空则回退 DeepSeek / mock）" />
-            <button class="pw-toggle" type="button" data-target="typesafeKey">显示</button>
-          </div>
-        </div>
-        <div class="cfg-actions">
-          <button id="jevTestBtn" type="button">测试连接</button>
-          <span id="jevTestResult" class="muted"></span>
-        </div>
-      </fieldset>
-
-      <fieldset class="cfg-group">
-        <legend><span class="cfg-title">DeepSeek 路线裁判</span><span id="dsStatus" class="ch-badge off">未配置</span></legend>
-        <p id="dsSub" class="cfg-sub"></p>
-        <div class="field">
-          <label for="deepseekKey">API Key</label>
-          <div class="pw">
-            <input id="deepseekKey" type="password" placeholder="sk-..." />
-            <button class="pw-toggle" type="button" data-target="deepseekKey">显示</button>
-          </div>
-        </div>
-        <div class="field">
-          <label for="deepseekBase">Base URL</label>
-          <input id="deepseekBase" type="text" placeholder="https://api.deepseek.com/v1" />
-        </div>
-        <div class="field">
-          <label for="deepseekModel">模型名</label>
-          <input id="deepseekModel" type="text" placeholder="deepseek-chat" />
-        </div>
-      </fieldset>
-
-      <fieldset class="cfg-group">
-        <legend><span class="cfg-title">Vision 视觉兜底</span><span id="visStatus" class="ch-badge off">未配置</span></legend>
-        <p id="visSub" class="cfg-sub"></p>
-        <p class="muted" style="font-size:11px;margin:2px 0 6px">启用开关在「功能配置」里。Key 留空则复用 DeepSeek Key。</p>
-        <div class="field">
-          <label for="visionKey">Vision Key</label>
-          <div class="pw">
-            <input id="visionKey" type="password" placeholder="留空则用 DeepSeek Key" />
-            <button class="pw-toggle" type="button" data-target="visionKey">显示</button>
-          </div>
-        </div>
-        <div class="field">
-          <label for="visionBase">Vision Base URL</label>
-          <input id="visionBase" type="text" placeholder="https://api.openai.com/v1" />
-        </div>
-        <div class="field">
-          <label for="visionModel">Vision 模型名</label>
-          <input id="visionModel" type="text" placeholder="gpt-4o / qwen-vl-max 等视觉模型" />
-        </div>
-      </fieldset>
-
-      <fieldset class="cfg-group">
-        <legend><span class="cfg-title">browser-use 兜底后端</span><span id="buStatus" class="ch-badge off">未配置</span></legend>
-        <p id="buSub" class="cfg-sub"></p>
-        <div class="field">
-          <label for="browserUseUrl">后端 URL</label>
-          <input id="browserUseUrl" type="text" placeholder="留空则用扩展内 LLM agentic 兜底" />
-        </div>
-        <p class="muted" style="font-size:11px;margin:2px 0 6px">当 jev/LLM 都判定不出可点击元素时（如拖拽/复杂交互），把该步交给 browser-use 式 agent 兜底。填写即走真实 browser-use 后端，否则用扩展内置的「观察→决策→执行」循环。</p>
-      </fieldset>
+      <div class="panel-card">
+        <div class="card-title">渠道列表</div>
+        <div class="muted card-sub">每个渠道选择一个协议并拉取模型，为每个模型指定能力（生图/视频/文本/音频），并可自定义调用脚本。</div>
+        <button id="addChannelBtn" class="btn-dark" type="button">＋ 新增渠道</button>
+        <div id="channelList" class="ch-list"></div>
+      </div>
     </div>
 
     <!-- 功能配置：所有可调参数集中在这里 -->
@@ -215,6 +139,85 @@
       <p class="muted">保存后立即生效（无需重载扩展）。</p>
     </div>
   </section>
+
+  <!-- 编辑渠道弹窗 -->
+  <div id="chModal" class="modal-mask" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">编辑渠道</div>
+        <div class="modal-head-actions">
+          <button id="chCancel" class="btn-ghost" type="button">取消</button>
+          <button id="chSave" class="btn-dark" type="button">保存</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="grid2">
+          <label class="field"><span>渠道名称</span><input id="chName" type="text" placeholder="渠道名称" /></label>
+          <label class="field"><span>协议</span>
+            <select id="chProto">
+              <option value="openai">OpenAI</option>
+              <option value="typesafe">SystemOne 兼容</option>
+            </select>
+          </label>
+        </div>
+        <label class="field"><span>接口地址</span><input id="chEndpoint" type="text" placeholder="https://api.openai.com/v1" /></label>
+        <label class="field"><span>API Key</span>
+          <span class="pw">
+            <input id="chKey" type="password" placeholder="sk-..." />
+            <button id="chKeyEye" class="pw-eye" type="button" title="显示 / 隐藏">👁</button>
+          </span>
+        </label>
+        <div class="models-head">
+          <div>
+            <div class="card-title">渠道模型</div>
+            <div class="muted" id="chModelsSub">已选 0 个；为每个模型指定能力并可自定义调用脚本。</div>
+          </div>
+          <button id="chPickModels" class="btn-dark" type="button">☰ 选择模型</button>
+        </div>
+        <div id="chModelRows" class="model-rows"></div>
+        <div class="cfg-actions">
+          <button id="chTestBtn" class="btn-ghost" type="button">测试连接</button>
+          <span id="chTestResult" class="muted"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 选择渠道模型弹窗 -->
+  <div id="modelModal" class="modal-mask" hidden>
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">选择渠道模型 <span id="mmCount" class="muted mm-count">已选择 0 / 0</span></div>
+        <button id="mmClose" class="modal-x" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="mm-toolbar">
+          <input id="mmSearch" type="text" placeholder="🔍 搜索模型" />
+          <input id="mmManual" type="text" placeholder="输入模型名称" />
+          <button id="mmAdd" class="btn-ghost" type="button">增加模型</button>
+          <button id="mmPull" class="btn-ghost" type="button">⟳ 拉取模型列表</button>
+        </div>
+        <p class="muted mm-hint">如果上游不提供 OpenAI /models 模型列表接口，请在这里手动增加模型名称。</p>
+        <div class="mm-tabs">
+          <button class="mm-tab active" data-mmtab="fetched" type="button">新获取的模型 (0)</button>
+          <button class="mm-tab" data-mmtab="existing" type="button">已有的模型 (0)</button>
+        </div>
+        <div class="mm-sub">
+          <span>当前列表已选择 <b id="mmSelCount">0</b> / <b id="mmTotal">0</b></span>
+          <span class="mm-sub-actions">
+            <button id="mmAll" class="btn-ghost" type="button">全选当前列表</button>
+            <button id="mmNone" class="btn-ghost" type="button">取消当前列表</button>
+          </span>
+        </div>
+        <div id="mmList" class="mm-list"></div>
+        <div id="mmPullMsg" class="muted mm-pullmsg"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="mmCancel" class="btn-ghost" type="button">取消</button>
+        <button id="mmOk" class="btn-dark" type="button">确定</button>
+      </div>
+    </div>
+  </div>
 
   <script src="panel.js"></script>
 </body>
