@@ -3,6 +3,7 @@
 // exploration + fresh re-judge on failure), real model providers
 // (jev/TypeSafe + DeepSeek), MD packaging.
 import { decideTopK, mockDecide } from "./lib/decide.js";
+import { typesafeDecide, openaiDecide } from "./lib/jev.js";
 import { targetOf, goalAligned, foldText, revealSkipCandidate } from "./lib/calibrate.js";
 import { defaultSpecFor, fracOf, summarize } from "./lib/verify.js";
 import { planFromNL, fieldValue, groundVision, needsRoute, routeJudge, planExhaustedAction, routeShouldSkip, goalComplete } from "./lib/llm.js";
@@ -1923,6 +1924,110 @@ function jevTestState() {
   };
 }
 
+// ---------- 渠道「测试连接」----------
+// 按渠道 role/协议走各自的**真实**调用路径，用于模型配置页的「测试连接」。
+//
+// 关键点（2026-10-02 修复）：这里绝不能走 decideTopK —— 它会 jev→deepseek→mock
+// 逐级兜底，mock 永远成功，于是没配好的渠道也会显示「连接成功」。所以直接调用
+// 各协议的原生函数：
+//   · JEV + SystemOne 兼容  -> POST {endpoint}，body {model,state,questions}
+//     （百炼 MaaS 的 /compatible-mode/v1/systemone 只服务这一个 POST 路径，
+//      没有 GET /models，也没有 /chat/completions —— 用 /models 探活必然 400）
+//   · JEV + OpenAI 兼容     -> POST {endpoint}，body {model,messages}
+//   · DeepSeek / Vision     -> POST {base}/chat/completions（OpenAI 兼容）
+//   · browser-use           -> GET 地址可达性（该渠道无 Key、无固定协议）
+function modelNameOf(models, fallback) {
+  const ms = models || [];
+  const text = ms.find((m) => (m.caps || []).includes("text"));
+  const pick = text || ms[0];
+  return (pick && pick.name) || fallback || "";
+}
+
+async function testChannel({ role, proto, base, key, models } = {}) {
+  const r0 = role || "";
+  const p0 = proto || (r0 === "jev" ? config.jevAdapter || "typesafe" : "openai");
+  const v = (s) => String(s == null ? "" : s).trim();
+  const fallbackBase =
+    r0 === "jev" ? config.typesafeEndpoint
+    : r0 === "ds" ? config.deepseekBase
+    : r0 === "vis" ? config.visionBase
+    : r0 === "bu" ? config.browserUseUrl
+    : "";
+  const ep = v(base) || v(fallbackBase);
+  const k = v(key) || (
+    r0 === "jev" ? config.typesafeKey
+    : r0 === "ds" ? config.deepseekKey
+    : r0 === "vis" ? config.visionKey
+    : ""
+  );
+
+  // browser-use 兜底渠道：只验证服务地址可达
+  if (r0 === "bu") {
+    if (!ep) return { ok: false, reason: "请先填写 browser-use 服务地址" };
+    const t0 = Date.now();
+    try {
+      const r = await fetch(ep, { method: "GET" });
+      return { ok: true, detail: `地址可达（HTTP ${r.status}）`, latencyMs: Date.now() - t0 };
+    } catch (e) {
+      return { ok: false, reason: (e && e.message) || String(e), latencyMs: Date.now() - t0 };
+    }
+  }
+
+  if (!ep) return { ok: false, reason: "请先填写接口地址" };
+
+  if (r0 === "jev") {
+    const model = modelNameOf(models, config.typesafeModel) || "decision-model-preview";
+    if (!k) return { ok: false, reason: "请先填写 API Key" };
+    const cfg = Object.assign({}, config, {
+      typesafeEndpoint: ep,
+      typesafeKey: k,
+      typesafeModel: model,
+      jevAdapter: p0 === "openai" ? "openai" : "typesafe",
+    });
+    const t0 = Date.now();
+    try {
+      const fn = cfg.jevAdapter === "openai" ? openaiDecide : typesafeDecide;
+      const r = await fn(jevTestState(), "在搜索框输入并点击搜索按钮", 3, cfg, []);
+      const latencyMs = Date.now() - t0;
+      return {
+        ok: true,
+        adapter: cfg.jevAdapter,
+        model: r.model || model,
+        latencyMs,
+        detail: `${cfg.jevAdapter === "openai" ? "OpenAI 兼容" : "SystemOne 兼容"} · ${r.model || model}`,
+        sample: (r.routes || []).slice(0, 3).map((x) => ({
+          label: (x.action && (x.action.label || x.action.role)) || "?",
+          score: x.score,
+        })),
+      };
+    } catch (e) {
+      return { ok: false, reason: (e && e.message) || String(e), latencyMs: Date.now() - t0 };
+    }
+  }
+
+  // DeepSeek / Vision：OpenAI 兼容 chat/completions 探针
+  if (!k) return { ok: false, reason: "请先填写 API Key" };
+  const b = ep.replace(/\/+$/, "").replace(/\/chat\/completions$/i, "").replace(/\/systemone\/?$/i, "");
+  const url = b + "/chat/completions";
+  const model = modelNameOf(models, r0 === "vis" ? config.visionModel : config.deepseekModel) ||
+    (r0 === "vis" ? "gpt-4o" : "deepseek-chat");
+  const t0 = Date.now();
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + k },
+      body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: "user", content: "ping" }] }),
+      signal: AbortSignal.timeout(30000),
+    });
+    const latencyMs = Date.now() - t0;
+    if (!r.ok) return { ok: false, reason: `HTTP ${r.status}（${url}）`, latencyMs };
+    const j = await r.json().catch(() => ({}));
+    return { ok: true, latencyMs, detail: `OpenAI 兼容 · ${j.model || model}`, url };
+  } catch (e) {
+    return { ok: false, reason: (e && e.message) || String(e), latencyMs: Date.now() - t0 };
+  }
+}
+
 // ---------- message router ----------
 function publicState() {
   return {
@@ -2238,7 +2343,11 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
       case "LIST_MODELS": {
         // 模型渠道编辑弹窗的「拉取模型列表」：GET 上游 OpenAI 兼容 /models。
         // base/key 优先取面板传来的值（用户正在编辑），留空则回退到已保存配置。
+        // 注意：SystemOne 兼容端点（百炼 MaaS /compatible-mode/v1/systemone）只提供
+        // POST 决策接口，没有 /models；此处直接短路并返回建议模型，避免用户看到
+        // 一个像「连接失败」的 HTTP 400。
         const ch = msg.channel;
+        const proto = msg.proto || (ch === "jev" ? config.jevAdapter || "typesafe" : "openai");
         const baseOf = (c) =>
           c === "jev" ? config.typesafeEndpoint
           : c === "ds" ? config.deepseekBase
@@ -2254,6 +2363,18 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
         base = base.replace(/\/+$/, "");
         const key = (msg.key || "").trim() || (keyOf(ch) || "").trim();
         if (!base) return { ok: false, reason: "请先填写接口地址" };
+        if (/\/systemone$/i.test(base) || (ch === "jev" && proto !== "openai")) {
+          const suggest = (config.jevModels || [])
+            .map((m) => (typeof m === "string" ? m : m && m.name))
+            .filter(Boolean);
+          if (!suggest.includes("decision-model-preview")) suggest.unshift("decision-model-preview");
+          return {
+            ok: false,
+            systemone: true,
+            reason: "该渠道是 SystemOne 兼容端点，不提供 /models 列表接口",
+            suggest,
+          };
+        }
         const url = /\/models$/.test(base) ? base : base + "/models";
         try {
           const r = await fetch(url, { headers: key ? { Authorization: "Bearer " + key } : {} });
@@ -2267,28 +2388,28 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
         }
       }
 
+      case "TEST_CHANNEL":
+        // 渠道编辑弹窗的「测试连接」：按 role/协议走真实调用路径（详见 testChannel）。
+        return await testChannel({
+          role: msg.role,
+          proto: msg.proto,
+          base: msg.base,
+          key: msg.key,
+          models: msg.models,
+        });
+
       case "JEV_TEST": {
-        if (!config.typesafeKey) return { ok: false, reason: "未配置 jev API Key（在设置页填写）" };
-        const adapter = config.jevAdapter === "openai" ? "openai" : "typesafe";
-        if (adapter === "openai" && !config.typesafeEndpoint)
-          return { ok: false, reason: "OpenAI 兼容模式需要填写端点 URL" };
-        const started = Date.now();
-        try {
-          const r = await decideTopK(jevTestState(), "在搜索框输入并点击搜索按钮", 3, config, "jev", []);
-          return {
-            ok: true,
-            adapter,
-            provider: r.provider,
-            latencyMs: r.latencyMs,
-            sample: (r.routes || []).slice(0, 3).map((x) => ({
-              label: x.action?.label || x.action?.role || "?",
-              score: x.score,
-            })),
-            errors: r.errors,
-          };
-        } catch (e) {
-          return { ok: false, reason: e.message, latencyMs: Date.now() - started };
-        }
+        // 兼容旧入口：等价于测试 JEV 渠道（用已保存配置）。
+        const r = await testChannel({
+          role: "jev",
+          proto: config.jevAdapter,
+          base: config.typesafeEndpoint,
+          key: config.typesafeKey,
+          models: config.jevModels,
+        });
+        return r.ok
+          ? { ok: true, adapter: r.adapter, provider: "jev", latencyMs: r.latencyMs, sample: r.sample }
+          : r;
       }
 
       default:
