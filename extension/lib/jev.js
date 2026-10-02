@@ -42,7 +42,13 @@ async function postJson(url, key, body) {
       await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
       continue;
     }
-    if (!res.ok) throw new Error("jev 模型返回 HTTP " + res.status);
+    if (!res.ok) {
+      // Surface the upstream message (e.g. 400 "questions: 101 exceeds the
+      // limit of 16" / invalid model) — a bare status code is undiagnosable
+      // from the 测试连接 button.
+      const body = await res.text().catch(() => "");
+      throw new Error("jev 模型返回 HTTP " + res.status + (body ? "：" + body.slice(0, 200) : ""));
+    }
     return res.json();
   }
   throw new Error("jev 模型不可用");
