@@ -2029,6 +2029,11 @@ async function testChannel({ role, proto, base, key, models } = {}) {
 }
 
 // ---------- message router ----------
+// 只回传密钥尾部（sk-…abcd），够侧边栏确认「已配置的是哪把 Key」，又不泄露完整密钥。
+function keyTailOf(k) {
+  return typeof k === "string" && k.trim().length > 4 ? "…" + k.trim().slice(-4) : "";
+}
+
 function publicState() {
   return {
     workingTabId: state.workingTabId,
@@ -2069,6 +2074,12 @@ function publicState() {
       hasTypesafeKey: !!config.typesafeKey,
       hasDeepseekKey: !!config.deepseekKey,
       hasVisionKey: !!(config.visionKey || config.deepseekKey),
+      // 已配置的密钥尾号（仅尾 4 位），供侧边栏在「已配置」徽标与编辑弹窗里提示
+      keyTail: {
+        jev: keyTailOf(config.typesafeKey),
+        ds: keyTailOf(config.deepseekKey),
+        vis: keyTailOf(config.visionKey),
+      },
       // v0.5 模型渠道：渠道显示名覆盖 + 各渠道模型清单
       channelNames: config.channelNames || {},
       jevModels: config.jevModels || [],
@@ -2112,7 +2123,18 @@ chrome.runtime.onMessage.addListener((msg, sender, respond) => {
 
       case "SET_CONFIG": {
         const allowed = Object.keys(DEFAULT_CONFIG);
-        for (const k of allowed) if (k in (msg.config || {})) config[k] = msg.config[k];
+        const SECRETS = ["typesafeKey", "deepseekKey", "visionKey"];
+        for (const k of allowed) {
+          if (!(k in (msg.config || {}))) continue;
+          const v = msg.config[k];
+          // 侧边栏不持有密钥明文（publicState 只暴露 hasXxxKey），所以未变更时会带回
+          // undefined/null/空串。这类值一律视为「不改」，否则会把 chrome.storage 里的
+          // Key 抹掉 —— SW 一重启（关闭浏览器 / 30s 空闲回收）就再也读不回来，
+          // 表现为「徽标全变未配置 + JEV/DeepSeek 静默失效」。
+          if (v === undefined || v === null) continue;
+          if (SECRETS.includes(k) && String(v).trim() === "") continue;
+          config[k] = v;
+        }
         await chrome.storage.local.set({ config });
         return { ok: true, state: publicState() };
       }
