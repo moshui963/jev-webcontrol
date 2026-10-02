@@ -132,6 +132,8 @@ input[type=text] { width: 100%; padding: 6px; border: 1px solid var(--border); b
 .pw input { flex:1; padding-right:52px; }
 .pw-toggle { position:absolute; right:6px; top:50%; transform:translateY(-50%); border:none; background:transparent; color:var(--blue); cursor:pointer; font-size:12px; padding:4px 6px; }
 .pw-toggle:hover { text-decoration:underline; }
+/* 协议语义提示（SystemOne 端点没有 /models、/chat/completions） */
+.field-hint { font-size:11px; line-height:1.5; margin:2px 0 2px; }
 .cfg-actions { display:flex; align-items:center; gap:10px; margin-top:8px; }
 .cfg-actions button { padding:6px 12px; border:1px solid var(--border); background:#fff; border-radius:8px; cursor:pointer; color:var(--text); }
 .cfg-actions button:hover { border-color:var(--blue); color:var(--blue); }
