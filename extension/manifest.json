@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "JEV Web Control",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "自然语言网页自动化：多标签束搜索找最佳路线，产出 Agent 可消费的结构化方案",
   "permissions": [
     "tabs",
