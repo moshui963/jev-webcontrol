@@ -759,8 +759,25 @@ function openEditChannel(i) {
   $("chKeyEye").textContent = "👁";
   $("chKey").placeholder = c.hasKey ? "已配置（输入可更换）" : "sk-...";
   $("chTestResult").textContent = "";
+  syncProtoHint();
   renderModelRows(c.models || []);
   $("chModal").hidden = false;
+}
+
+// 按协议提示端点语义：SystemOne 端点不是 OpenAI 形态（无 /models、无 /chat/completions），
+// 避免用户点「测试连接 / 拉取模型列表」时被 HTTP 400 误导。
+function syncProtoHint() {
+  const sel = $("chProto"), ep = $("chEndpoint"), hint = $("chEndpointHint");
+  if (!sel || !ep || !hint) return;
+  if (sel.value === "typesafe") {
+    ep.placeholder = "https://llm-xxxx.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/systemone";
+    hint.textContent =
+      "SystemOne 兼容：整串地址即决策接口（POST {model,state,questions}），" +
+      "它不提供 /models 与 /chat/completions，模型名请手动填写（如 decision-model-preview）。";
+  } else {
+    ep.placeholder = "https://api.openai.com/v1";
+    hint.textContent = "OpenAI 兼容：测试连接会请求 {地址}/chat/completions；{地址}/models 用于拉取模型列表。";
+  }
 }
 
 const CAPS = ["text", "image", "video", "audio"];
@@ -923,6 +940,7 @@ $("addChannelBtn").addEventListener("click", () => {
   openEditChannel(channels.length - 1);
 });
 $("chPickModels").addEventListener("click", openModelPicker);
+$("chProto").addEventListener("change", syncProtoHint);
 $("chSave").addEventListener("click", saveChannel);
 $("chCancel").addEventListener("click", () => { $("chModal").hidden = true; });
 // 模型配置页级保存（与编辑弹窗内的单独保存并存；此处一次性保存全部渠道）
@@ -939,11 +957,27 @@ $("chTestBtn").addEventListener("click", async () => {
   const c = channels[editingIndex] || {};
   const base = ($("chEndpoint").value || c.endpoint || "").trim();
   const key = ($("chKey").value || c.key || "").trim();
-  if (!base) { el.style.color = "#dc2626"; el.textContent = "✗ 请先填写接口地址"; return; }
+  const proto = $("chProto").value || c.proto || "typesafe";
+  // browser-use 渠道无需接口地址/Key；其余渠道必须先有地址
+  if (!base && c.role !== "bu") { el.style.color = "#dc2626"; el.textContent = "✗ 请先填写接口地址"; return; }
   try {
-    const res = await sendMsg({ type: "LIST_MODELS", channel: c.role || "", base, key });
-    if (res?.ok) { el.style.color = "#16a34a"; el.textContent = `✓ 连接成功 · 获取到 ${res.models.length} 个模型`; }
-    else { el.style.color = "#dc2626"; el.textContent = "✗ " + (res?.reason || "连接失败"); }
+    // 按渠道协议走真实调用路径（SystemOne 端点用 POST 决策探针，不再是 GET /models）
+    const res = await sendMsg({
+      type: "TEST_CHANNEL",
+      role: c.role || "", proto, base, key,
+      models: c.models || [],
+    });
+    if (res?.ok) {
+      el.style.color = "#16a34a";
+      const s = (res.sample || []).map((x) => `${x.label}(${Math.round((x.score || 0) * 100)}%)`).join(", ");
+      el.textContent =
+        `✓ 连接成功 · ${res.detail || ""}` +
+        (res.latencyMs ? ` · ${res.latencyMs}ms` : "") +
+        (s ? ` · 候选: ${s}` : "");
+    } else {
+      el.style.color = "#dc2626";
+      el.textContent = "✗ " + (res?.reason || "连接失败") + (res?.latencyMs ? ` · ${res.latencyMs}ms` : "");
+    }
   } catch (e) { el.style.color = "#dc2626"; el.textContent = "✗ " + e.message; }
 });
 $("mmSearch").addEventListener("input", renderMmList);
@@ -960,17 +994,26 @@ $("mmPull").addEventListener("click", async () => {
   const c = channels[editingIndex] || {};
   const base = ($("chEndpoint").value || c.endpoint || "").trim();
   const key = ($("chKey").value || c.key || "").trim();
-  $("mmPullMsg").textContent = "拉取中…";
+  const proto = $("chProto").value || c.proto || "typesafe";
+  const msg = $("mmPullMsg");
+  msg.style.color = "";
+  msg.textContent = "拉取中…";
   try {
-    const res = await sendMsg({ type: "LIST_MODELS", channel: c.role || "", base, key });
+    const res = await sendMsg({ type: "LIST_MODELS", channel: c.role || "", base, key, proto });
     if (res?.ok) {
       pickerFetched = (res.models || []).map((n) => ({ name: n, caps: [] }));
-      $("mmPullMsg").textContent = `✓ 获取到 ${pickerFetched.length} 个模型（${res.url || base}）`;
+      msg.textContent = `✓ 获取到 ${pickerFetched.length} 个模型（${res.url || base}）`;
+      pickerTab = "fetched"; setMmTabs(); renderMmList();
+    } else if (res?.suggest?.length) {
+      // SystemOne 兼容端点没有 /models：列出建议模型，勾选即可加入
+      pickerFetched = res.suggest.map((n) => ({ name: n, caps: [] }));
+      msg.style.color = "#d97706";
+      msg.textContent = `⚠ ${res.reason}；已列出建议模型 ${res.suggest.length} 个，勾选后确定即可`;
       pickerTab = "fetched"; setMmTabs(); renderMmList();
     } else {
-      $("mmPullMsg").textContent = "✗ " + (res?.reason || "拉取失败");
+      msg.textContent = "✗ " + (res?.reason || "拉取失败");
     }
-  } catch (e) { $("mmPullMsg").textContent = "✗ " + e.message; }
+  } catch (e) { msg.textContent = "✗ " + e.message; }
 });
 document.querySelectorAll(".mm-tab").forEach((t) =>
   t.addEventListener("click", () => { pickerTab = t.dataset.mmtab; setMmTabs(); renderMmList(); }));
