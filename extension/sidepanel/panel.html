@@ -165,6 +165,7 @@
           </label>
         </div>
         <label class="field"><span>接口地址</span><input id="chEndpoint" type="text" placeholder="https://api.openai.com/v1" /></label>
+        <div class="muted field-hint" id="chEndpointHint"></div>
         <label class="field"><span>API Key</span>
           <span class="pw">
             <input id="chKey" type="password" placeholder="sk-..." />
@@ -201,7 +202,7 @@
           <button id="mmAdd" class="btn-ghost" type="button">增加模型</button>
           <button id="mmPull" class="btn-ghost" type="button">⟳ 拉取模型列表</button>
         </div>
-        <p class="muted mm-hint">如果上游不提供 OpenAI /models 模型列表接口，请在这里手动增加模型名称。</p>
+        <p class="muted mm-hint">如果上游不提供 OpenAI /models 模型列表接口（例如 SystemOne 兼容端点），请在这里手动增加模型名称。</p>
         <div class="mm-tabs">
           <button class="mm-tab active" data-mmtab="fetched" type="button">新获取的模型 (0)</button>
           <button class="mm-tab" data-mmtab="existing" type="button">已有的模型 (0)</button>
