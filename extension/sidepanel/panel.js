@@ -925,6 +925,8 @@ $("addChannelBtn").addEventListener("click", () => {
 $("chPickModels").addEventListener("click", openModelPicker);
 $("chSave").addEventListener("click", saveChannel);
 $("chCancel").addEventListener("click", () => { $("chModal").hidden = true; });
+// 模型配置页级保存（与编辑弹窗内的单独保存并存；此处一次性保存全部渠道）
+$("saveChannelsBtn").addEventListener("click", () => persistChannels());
 $("chKeyEye").addEventListener("click", () => {
   const inp = $("chKey");
   const show = inp.type === "password";
