@@ -46,7 +46,7 @@
 
 ### 方式一：Chrome 扩展（主形态，推荐）
 
-1. 下载 / 克隆本仓库到本地
+1. 下载最新版安装包（[Releases](https://github.com/moshui963/jev-webcontrol/releases/latest) 里的 `jev-webcontrol-vX.Y.Z.zip`，解压后即得到 `extension/` 目录），或克隆本仓库到本地
 2. 打开 Chrome，访问 `chrome://extensions`
 3. 右上角开启「**开发者模式**」（Developer mode）
 4. 点「**加载已解压的扩展程序**」（Load unpacked），选择本仓库的 **`extension/`** 目录
@@ -57,13 +57,14 @@
 
 ### 配置 JEV（阿里云 decision-model-preview）
 
-在「设置 → 模型配置 → **JEV 决策引擎**」分组中填写：
+在「设置 → 模型配置」里点「**＋ 新增渠道**」（或点已有渠道的「编辑」），按下表填写后保存：
 
 | 字段 | 填什么 |
 |------|--------|
-| 模型类型 | SystemOne 兼容格式（默认）/ OpenAI 兼容 |
-| 端点 URL | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
-| 模型名 | `decision-model-preview`（已默认填好） |
+| 渠道名称 | 任意，如 `JEV 决策引擎` |
+| 协议 | `SystemOne 兼容`（默认） |
+| 接口地址 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| 模型 | `decision-model-preview`（点「☰ 选择模型 → ⟳ 拉取模型列表」会自动给出建议模型） |
 | API Key | 阿里云百炼控制台拿到的 `sk-...` |
 
 填完后点「**测试连接**」验证可用性，再点「**保存**」。保存后立即生效，无需重载扩展。
