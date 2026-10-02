@@ -1074,15 +1074,7 @@ function applyConfig(c) {
 }
 
 function showInstantPlaceholders() {
-  // 立即显示欢迎语，避免“白屏/文字少”
-  const chat = $("chat");
-  if (chat && !chat.children.length) {
-    const w = document.createElement("div");
-    w.className = "msg sys";
-    w.style.whiteSpace = "pre-wrap";
-    w.textContent = "欢迎使用 JEV Web Control 👋\n在下方描述你的网页自动化目标，或先到「设置」配置 JEV 模型。";
-    chat.appendChild(w);
-  }
+  // 不再插入欢迎气泡：顶部横幅已展示品牌与引导，避免重复文案
   // 本地存储先填设置页（渠道列表 + 功能配置）
   try {
     chrome.storage.local.get("config", (d) => {
