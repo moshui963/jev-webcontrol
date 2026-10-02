@@ -159,6 +159,8 @@ input[type=text] { width: 100%; padding: 6px; border: 1px solid var(--border); b
 .btn-del { padding:5px 8px; border:1px solid #fecaca; background:#fff; border-radius:8px; cursor:pointer; color:var(--red); font-size:12px; }
 .btn-del:hover { background:#fef2f2; }
 
+/* 关键：author 样式会盖掉 UA 的 [hidden]{display:none}，若不强制，.modal-mask 的 display:flex 会让弹窗常驻且无法关闭 */
+[hidden] { display:none !important; }
 /* 弹窗 */
 .modal-mask { position:fixed; inset:0; background:rgba(15,23,42,.42); display:flex; align-items:flex-start; justify-content:center; z-index:50; padding:24px 12px; overflow:auto; }
 .modal { background:#fff; border-radius:12px; width:100%; max-width:640px; box-shadow:0 20px 50px rgba(0,0,0,.28); }
