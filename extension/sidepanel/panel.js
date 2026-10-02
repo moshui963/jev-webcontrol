@@ -698,6 +698,7 @@ function buildChannels(cfg) {
     bu:  { endpoint: cfg.browserUseUrl || "", key: "", models: [], proto: "", hasKey: false },
   };
   const arr = [];
+  const tail = cfg.keyTail || {};
   for (const role of ["jev", "ds", "vis", "bu"]) {
     const s = seed[role];
     arr.push({
@@ -708,6 +709,7 @@ function buildChannels(cfg) {
       key: s.key,
       models: s.models,
       hasKey: s.hasKey,
+      tail: tail[role] || "",
     });
   }
   if (Array.isArray(cfg.channels)) for (const c of cfg.channels) arr.push({ ...c, role: c.role || "" });
@@ -726,11 +728,13 @@ function renderChannels() {
     const sub = c.role && roleMeta ? roleMeta.sub
       : (c.endpoint ? hostOf(c.endpoint) : "未填接口地址");
     const modelCount = (c.models || []).length;
-    const ok = c.endpoint && (c.role === "bu" ? true : !!c.hasKey);
+    // browser-use 只需接口地址；其余渠道需要「地址 + Key」才算配置完成
+    const ok = !!c.endpoint && (c.role === "bu" ? true : (!!c.hasKey || !!c.key));
+    card.className = "ch-card" + (ok ? " is-on" : "");
     card.innerHTML =
       `<div class="ch-card-main">` +
         `<div class="ch-card-name">${escapeHtml(c.name)}</div>` +
-        `<div class="ch-card-sub">${escapeHtml(sub)}${modelCount ? " · 模型 " + modelCount + " 个" : ""}</div>` +
+        `<div class="ch-card-sub">${escapeHtml(sub)}${modelCount ? " · 模型 " + modelCount + " 个" : ""}${ok && c.tail ? " · Key " + escapeHtml(c.tail) : ""}</div>` +
       `</div>` +
       `<div class="ch-card-actions">` +
         `<span class="ch-badge ${ok ? "on" : "off"}">${ok ? "已配置" : "未配置"}</span>` +
@@ -757,7 +761,9 @@ function openEditChannel(i) {
   $("chKey").value = c.key || "";
   $("chKey").type = "password";
   $("chKeyEye").textContent = "👁";
-  $("chKey").placeholder = c.hasKey ? "已配置（输入可更换）" : "sk-...";
+  $("chKey").placeholder = c.hasKey
+    ? "已配置" + (c.tail ? "（" + c.tail + "）" : "") + "，留空即不修改"
+    : "sk-...";
   $("chTestResult").textContent = "";
   syncProtoHint();
   renderModelRows(c.models || []);
@@ -876,31 +882,41 @@ function primaryModel(models) {
 }
 
 // ============ 渠道保存 / 与引擎字段同步 ============
+// 面板永远不持有密钥明文（后台只回传 hasXxxKey / keyTail），所以：
+//   1) 只有用户这次真的输入了内容，才把该字段发出去 —— 发空值/undefined 会被后台
+//      当成「清空」，是最早那版「保存一次就把 Key 抹掉」的根源；
+//   2) 保存成功后用后台返回的 state 回填徽标，当场变绿，不必重载面板；
+//   3) 绝不从面板直写 chrome.storage.local（会绕过后台把未变更字段写成 undefined）。
 async function persistChannels() {
   const cfg = { channels: [] };
   const models = { jev: [], ds: [], vis: [] };
   const names = {};
   const legacy = {};
+  // 仅当值非空时才纳入 payload
+  const put = (k, v) => {
+    if (typeof v === "string") { if (v.trim()) legacy[k] = v.trim(); }
+    else if (v !== undefined && v !== null) legacy[k] = v;
+  };
   for (const c of channels) {
     if (c.role === "jev") {
-      legacy.typesafeKey = c.key || undefined;
-      legacy.typesafeEndpoint = c.endpoint || undefined;
+      put("typesafeKey", c.key);
+      put("typesafeEndpoint", c.endpoint);
       legacy.jevAdapter = c.proto === "openai" ? "openai" : "typesafe";
-      legacy.typesafeModel = primaryModel(c.models) || "decision-model-preview";
+      put("typesafeModel", primaryModel(c.models) || "decision-model-preview");
       names.jev = c.name; models.jev = c.models;
     } else if (c.role === "ds") {
-      legacy.deepseekKey = c.key || undefined;
-      legacy.deepseekBase = c.endpoint || undefined;
-      legacy.deepseekModel = primaryModel(c.models) || "deepseek-chat";
+      put("deepseekKey", c.key);
+      put("deepseekBase", c.endpoint);
+      put("deepseekModel", primaryModel(c.models) || "deepseek-chat");
       names.ds = c.name; models.ds = c.models;
     } else if (c.role === "vis") {
-      legacy.visionKey = c.key || undefined;
-      legacy.visionBase = c.endpoint || undefined;
-      legacy.visionModel = primaryModel(c.models) || "";
+      put("visionKey", c.key);
+      put("visionBase", c.endpoint);
+      put("visionModel", primaryModel(c.models));
       legacy.vision = !!(c.models && c.models.length);
       names.vis = c.name; models.vis = c.models;
     } else if (c.role === "bu") {
-      legacy.browserUseUrl = c.endpoint || undefined;
+      put("browserUseUrl", c.endpoint);
       names.bu = c.name;
     } else {
       cfg.channels.push({ name: c.name, proto: c.proto, endpoint: c.endpoint, key: c.key, models: c.models });
@@ -914,10 +930,26 @@ async function persistChannels() {
   try {
     const res = await sendMsg({ type: "SET_CONFIG", config: cfg });
     if (res?.ok) {
-      try { chrome.storage.local.get("config", (d) => { chrome.storage.local.set({ config: Object.assign({}, d.config || {}, cfg) }); }); } catch (_) {}
-      alert("已保存渠道配置。");
-    } else alert("保存失败");
-  } catch (e) { alert("保存失败：" + e.message); }
+      syncChannelFlags(res.state && res.state.config);
+      renderChannels();
+      toast("已保存渠道配置 · 立即生效");
+      // 已保存的 Key 不再留在面板内存里，避免下次误当成「用户输入」重复提交
+      for (const c of channels) if (c.role) c.key = "";
+    } else toast("保存失败，请重试", true);
+  } catch (e) { toast("保存失败：" + e.message, true); }
+}
+
+// 用后台返回的 hasXxxKey / keyTail 刷新内置渠道的配置态（保存后立刻点亮徽标）
+function syncChannelFlags(cfg) {
+  if (!cfg) return;
+  const tail = cfg.keyTail || {};
+  for (const c of channels) {
+    if (c.role === "jev") c.hasKey = !!cfg.hasTypesafeKey;
+    else if (c.role === "ds") c.hasKey = !!cfg.hasDeepseekKey;
+    else if (c.role === "vis") c.hasKey = !!cfg.hasVisionKey;
+    else continue;
+    c.tail = tail[c.role] || (c.hasKey ? c.tail : "") || "";
+  }
 }
 
 function saveChannel() {
@@ -1050,11 +1082,21 @@ $("saveSettingsBtn").addEventListener("click", async () => {
   };
   await sendMsg({ type: "USER_INFO", user: { name: $("userName").value, tenant: $("userTenant").value } });
   const res = await sendMsg({ type: "SET_CONFIG", config: cfg });
-  if (res?.ok) {
-    try { chrome.storage.local.get("config", (d) => { chrome.storage.local.set({ config: Object.assign({}, d.config || {}, cfg) }); }); } catch (_) {}
-    alert("功能配置已保存。");
-  } else alert("保存失败");
+  if (res?.ok) toast("功能配置已保存 · 立即生效");
+  else toast("保存失败，请重试", true);
 });
+
+// ---- 轻量提示条：替代 alert（alert 会阻塞页面，且浏览器会弹「阻止此页创建其他对话框」）----
+let toastTimer = 0;
+function toast(text, isErr) {
+  const el = $("toast");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("err", !!isErr);
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 2200);
+}
 
 // ---- 冷启动即时渲染：不依赖 service worker 唤醒，先本地填充，再重试 GET_STATE ----
 function applyConfig(c) {
